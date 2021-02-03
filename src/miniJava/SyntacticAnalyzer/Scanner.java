@@ -3,7 +3,7 @@ package miniJava.SyntacticAnalyzer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.regex.Pattern;
-import java.util.regex.Matcher;
+import java.util.HashMap;
 
 public class Scanner {
 	// TODO find the correct end of stream markers
@@ -11,10 +11,14 @@ public class Scanner {
 	private final static char eolWindows = '\r';
 	private final static Pattern letterRx = Pattern.compile("[a-zA-Z]");
 	private final static Pattern digitRx = Pattern.compile("[0-9]");
-	private final static Pattern keywordRx = Pattern.compile("public|private|"
+	private final static Pattern whitespaceRx = Pattern.compile(" |\t|\n|\r");
+	/*private final static Pattern keywordRx = Pattern.compile("public|private|"
 			+ "static|this|"
 			+ "boolean|true|false|int|void"
-			+ "if|else|while|return");
+			+ "if|else|while|return");*/
+	// TODO mess with load factor and see if anything changes
+	private final HashMap<String, TokenType> keywordDict = new HashMap<String, TokenType>(60);
+	private final HashMap<Character, TokenType> puncDict = new HashMap<Character, TokenType>(50);
 	
 	private InputStream scanInput;
 	private char currentChar;
@@ -22,8 +26,39 @@ public class Scanner {
 	
 	public Scanner(InputStream input) {
 		scanInput = input;
-		
 		eot = false;
+		
+		// initialize the keyword hashmap with the values of keywords
+		keywordDict.put("public", TokenType.PUBLIC);
+		keywordDict.put("private", TokenType.PRIVATE);
+		keywordDict.put("static", TokenType.STATIC);
+		keywordDict.put("this", TokenType.THIS);
+		keywordDict.put("boolean", TokenType.BOOLEAN);
+		keywordDict.put("true", TokenType.T);
+		keywordDict.put("false", TokenType.F);
+		keywordDict.put("int", TokenType.INT);
+		keywordDict.put("void", TokenType.VOID);
+		keywordDict.put("if", TokenType.IF);
+		keywordDict.put("else", TokenType.ELSE);
+		keywordDict.put("while", TokenType.WHILE);
+		keywordDict.put("return", TokenType.RETURN);
+		
+		// init another hashmap for punctuation
+		puncDict.put('+', TokenType.BINOP);
+		puncDict.put('*', TokenType.BINOP);
+		// TODO figure out how to parse the token type
+		// for now parse as unop -> add negative if needed
+		puncDict.put('-', TokenType.UNOP);
+		puncDict.put('{', TokenType.LBRACE);
+		puncDict.put('}', TokenType.RBRACE);
+		puncDict.put('[', TokenType.LSQUARE);
+		puncDict.put(']', TokenType.RSQUARE);
+		puncDict.put('(', TokenType.LPAREN);
+		puncDict.put(')', TokenType.RPAREN);
+		puncDict.put(';', TokenType.SEMICOLON);
+		puncDict.put(',', TokenType.COMMA);
+		// '/', '=', '<', '>', '&', '|', '!' need special handling
+		// since they may be part of multi character operators
 		
 		// initialize scanner by loading in first char of input
 		nextChar();
@@ -31,19 +66,21 @@ public class Scanner {
 	
 	public Token getNextToken() {
 		// get rid of whitespace and comments
-		while(!eot && currentChar == ' ') {
+		while(!eot && isWhitespace(currentChar)) {
 			// skip character
 			nextChar();
 		}
 		
-		// TODO get rid of comments
 		StringBuilder currentLexeme = new StringBuilder();
 		
 		TokenType type = scan(currentLexeme);
 		
-		String tokenText = currentLexeme.toString();
-		
-		return new Token(type, tokenText);
+		while(type == TokenType.COMMENT) {
+			currentLexeme = new StringBuilder();
+			type = scan(currentLexeme);
+		}
+
+		return new Token(type, currentLexeme.toString());
 	}
 	
 	private TokenType scan(StringBuilder lexeme) {
@@ -57,66 +94,126 @@ public class Scanner {
 			return scanNum(lexeme);
 		}
 		else { //check for punctuation
-			
+			return scanPunc(lexeme);
 		}
 	}
 	
 	private TokenType scanName(StringBuilder lexeme) {
-		lexeme.append(currentChar);
-		nextChar();
+		advanceScanner(lexeme);
 		
 		while(isLetter(currentChar) || isDigit(currentChar) || currentChar=='_') {
-			lexeme.append(currentChar);
-			nextChar();
+			advanceScanner(lexeme);
 		}
 		
 		String lexStr = lexeme.toString();
-		Matcher m = keywordRx.matcher(lexStr);
 		
-		if(m.matches()) {
-			switch(lexStr.charAt(0)) {
-			case 'i':
-				return lexStr.equals("if") ? TokenType.IF : TokenType.INT;
-			case 'p':
-				return lexStr.equals("public") ? TokenType.PUBLIC : TokenType.PRIVATE;
-			case 't':
-				return lexStr.equals("true") ? TokenType.T : TokenType.THIS;
-			case 'b':
-				return TokenType.BOOLEAN;
-			case 's':
-				return TokenType.STATIC;
-			case 'f':
-				return TokenType.F;
-			case 'e':
-				return TokenType.ELSE;
-			case 'w':
-				return TokenType.WHILE;
-			case 'r':
-				return TokenType.RETURN;
-			case 'v':
-				return TokenType.VOID;
-			default:
-				//error, regex matched something that definitely wasn't a keyword
-				System.out.println("ERROR: keyword regex matched non keyword");
-				eot = true;
-				return TokenType.EOT;
-			}
-		}
-		else {
-			return TokenType.ID;
-		}
+		return keywordDict.containsKey(lexStr) ? keywordDict.get(lexStr) : TokenType.ID;
 	}
 	
 	private TokenType scanNum(StringBuilder lexeme) {
-		lexeme.append(currentChar);
-		nextChar();
+		advanceScanner(lexeme);
 		
 		while(isDigit(currentChar)) {
-			lexeme.append(currentChar);
-			nextChar();
+			advanceScanner(lexeme);
 		}
 		
 		return TokenType.NUM_LITERAL;
+	}
+	
+	private TokenType scanPunc(StringBuilder lexeme) {
+		switch(currentChar) {
+		case '/':
+			advanceScanner(lexeme);
+			
+			if(currentChar == '/' || currentChar == '*') {
+				consumeComment(currentChar == '*');
+				return TokenType.COMMENT;
+			}
+			else {
+				return TokenType.BINOP;
+			}
+		case '<':
+		case '>':
+			advanceScanner(lexeme);
+			
+			if(currentChar == '=') {
+				advanceScanner(lexeme);
+			}
+			return TokenType.BINOP;
+		case '=':
+			advanceScanner(lexeme);
+			
+			if(currentChar == '=') {
+				advanceScanner(lexeme);
+				return TokenType.BINOP;
+			}
+			return TokenType.ASSIGNMENT;
+		case '!':
+			advanceScanner(lexeme);
+			
+			if(currentChar == '=') {
+				advanceScanner(lexeme);
+				return TokenType.BINOP;
+			}
+			return TokenType.UNOP;
+		case '&':
+			advanceScanner(lexeme);
+			
+			if(currentChar == '&') {
+				advanceScanner(lexeme);
+				return TokenType.BINOP;
+			}
+			// TODO implement proper error reporting
+			// expected an and (&&) operator but got something else
+			return TokenType.ERROR;
+		case '|':
+			advanceScanner(lexeme);
+			
+			if(currentChar == '|') {
+				advanceScanner(lexeme);
+				return TokenType.BINOP;
+			}
+			// same as for and op
+			return TokenType.ERROR;
+		default:
+			// special cases have been checked
+			// input is either a one char op or a lexing error is reached
+			return puncDict.containsKey(currentChar) ? puncDict.get(currentChar) : TokenType.ERROR;
+		}
+	}
+	
+	private void consumeComment(boolean multiline) {
+		nextChar(); //called directly bc the lexeme associated with
+		// a comment need not be saved
+		
+		if(multiline) {
+			boolean loop = true;
+			
+			while(loop) {
+				if(eot) break;
+				
+				if(currentChar == '*') {
+					nextChar();
+					
+					if(currentChar == '/') {
+						nextChar();
+						
+						loop = false;
+					}
+				}
+			}
+		}
+		else {
+			while(currentChar != eolWindows && currentChar != eolUnix) {
+				nextChar();
+			}
+			nextChar();
+		}
+	}
+	
+	private void advanceScanner(StringBuilder lexeme) {
+		lexeme.append(currentChar);
+		nextChar();
 	}
 	
 	// gets the next character in the input stream by storing it in the currentChar field
@@ -149,9 +246,8 @@ public class Scanner {
 		return letterRx.matcher(c+"").matches();
 	}
 	
-	private void consumeComment() {
-		
+	private boolean isWhitespace(char c) {
+		return whitespaceRx.matcher(c+"").matches();
 	}
-	
 
 }

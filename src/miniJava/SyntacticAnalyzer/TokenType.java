@@ -32,8 +32,10 @@ public enum TokenType {
 		BOOLEAN, T, F,
 		VOID,
 	// sets of terminals, arbitrarily identified
-	ID, //name
+	ID, // name
 	NUM_LITERAL,
-	UNOP, //punctuation
-	BINOP	
+	UNOP, // punctuation
+	BINOP,
+	COMMENT,
+	ERROR // lexing error encountered
 }
