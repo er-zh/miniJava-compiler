@@ -74,11 +74,6 @@ public class Scanner {
 		StringBuilder currentLexeme = new StringBuilder();
 		
 		TokenType type = scan(currentLexeme);
-		
-		while(type == TokenType.COMMENT) {
-			currentLexeme = new StringBuilder();
-			type = scan(currentLexeme);
-		}
 
 		return new Token(type, currentLexeme.toString());
 	}
@@ -176,9 +171,11 @@ public class Scanner {
 			// same as for and op
 			return TokenType.ERROR;
 		default:
+			char op = currentChar;
+			advanceScanner(lexeme);
 			// special cases have been checked
 			// input is either a one char op or a lexing error is reached
-			return puncDict.containsKey(currentChar) ? puncDict.get(currentChar) : TokenType.ERROR;
+			return puncDict.containsKey(op) ? puncDict.get(op) : TokenType.ERROR;
 		}
 	}
 	
