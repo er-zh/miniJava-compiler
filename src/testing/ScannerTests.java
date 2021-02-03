@@ -38,7 +38,18 @@ class ScannerTests {
 			
 		typeIndex.put("+", TokenType.BINOP);
 		typeIndex.put("*", TokenType.BINOP);
+		typeIndex.put("/", TokenType.BINOP);
 		typeIndex.put("-", TokenType.UNOP);
+		typeIndex.put("!", TokenType.UNOP);
+		typeIndex.put("&&", TokenType.BINOP);
+		typeIndex.put("||", TokenType.BINOP);
+		typeIndex.put("!=", TokenType.BINOP);
+		typeIndex.put("==", TokenType.BINOP);
+		typeIndex.put("<", TokenType.BINOP);
+		typeIndex.put("<=", TokenType.BINOP);
+		typeIndex.put(">", TokenType.BINOP);
+		typeIndex.put(">=", TokenType.BINOP);
+		
 		typeIndex.put("{", TokenType.LBRACE);
 		typeIndex.put("}", TokenType.RBRACE);
 		typeIndex.put("[", TokenType.LSQUARE);
@@ -47,6 +58,10 @@ class ScannerTests {
 		typeIndex.put(")", TokenType.RPAREN);
 		typeIndex.put(";", TokenType.SEMICOLON);
 		typeIndex.put(",", TokenType.COMMA);
+		typeIndex.put("=", TokenType.ASSIGNMENT);
+		
+		typeIndex.put("//", TokenType.COMMENT);
+		typeIndex.put("/*", TokenType.COMMENT);
 	}
 	
 	@Test
@@ -121,6 +136,167 @@ class ScannerTests {
 		
 		t = s.getNextToken();
 		assertEquals(t.getType(), TokenType.EOT);
+	}
+	
+	@Test
+	void testOps() {
+		String num1 = "234232498756987";
+		String ops = "+ + / + * * + - == = <= /";
+		String num2 = "85848483";
+		
+		s = new Scanner(str2Stream(num1 + ops + num2));
+		
+		Token t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.NUM_LITERAL);
+		assertEquals(t.getLexeme(), "234232498756987");
+		
+		for(String word : ops.split("\\s+")) {
+			t = s.getNextToken();
+			
+			assertEquals(t.getLexeme(), word);
+			
+			TokenType type = typeIndex.get(t.getLexeme());
+			type = (type != null) ? type : TokenType.ID;
+			assertEquals(t.getType(), type);
+		}
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.NUM_LITERAL);
+		assertEquals(t.getLexeme(), "85848483");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.EOT);
+	}
+	
+	void testOpsHarder() {
+		String input = "+ / + - */!+-&&/**/||=== !=<<=>=,>";
+		
+		s = new Scanner(str2Stream(input));
+		
+		Token t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "+");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "/");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "+");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "-");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "*");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "/");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "!");
+
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "+");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "-");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "&&");
+
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.COMMENT);
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "||");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "==");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.ASSIGNMENT);
+		assertEquals(t.getLexeme(), "=");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "!=");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "<");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), "<=");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), ">=");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.COMMA);
+		assertEquals(t.getLexeme(), ",");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.BINOP);
+		assertEquals(t.getLexeme(), ">");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.EOT);
+	}
+	
+	@Test
+	void testPunc() {
+		String input = "/*var1 & \nmultiline comment\nvar2*/";
+
+		s = new Scanner(str2Stream(input));
+		
+		Token t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.COMMENT);
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.EOT);
+	}
+	
+	@Test
+	void test1LineComment() {
+		String input = "//single line comment\ncode = data";
+		
+		s = new Scanner(str2Stream(input));
+		
+		Token t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.COMMENT);
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.ID);
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.ASSIGNMENT);
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.ID);
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.EOT);
+	}
+	
+	@Test
+	void testLexicalError() {
+		String input = "var1 & var2";
+		
+		s = new Scanner(str2Stream(input));
+		
+		Token t = s.getNextToken();
+		
+		t = s.getNextToken();
+		
+		assertEquals(t.getType(), TokenType.ERROR);
 	}
 	
 	private InputStream str2Stream(String s) {

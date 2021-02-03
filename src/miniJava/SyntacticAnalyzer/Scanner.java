@@ -124,9 +124,7 @@ public class Scanner {
 				consumeComment(currentChar == '*');
 				return TokenType.COMMENT;
 			}
-			else {
-				return TokenType.BINOP;
-			}
+			return TokenType.BINOP;
 		case '<':
 		case '>':
 			advanceScanner(lexeme);
@@ -179,15 +177,16 @@ public class Scanner {
 		}
 	}
 	
-	private void consumeComment(boolean multiline) {
-		nextChar(); //called directly bc the lexeme associated with
-		// a comment need not be saved
-		
+	private void consumeComment(boolean multiline) {		
 		if(multiline) {
 			boolean loop = true;
 			
 			while(loop) {
-				if(eot) break;
+				if(eot) break; // TODO need to throw error in the case of malformed
+				// comment
+				
+				nextChar(); //called directly bc the lexeme associated with
+				// a comment need not be saved
 				
 				if(currentChar == '*') {
 					nextChar();
