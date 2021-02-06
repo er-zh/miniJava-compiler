@@ -17,6 +17,7 @@ public enum TokenType {
 		PERIOD,
 	//keywords
 		CLASS,
+		NEW,
 		// control structures
 		IF,
 		ELSE,

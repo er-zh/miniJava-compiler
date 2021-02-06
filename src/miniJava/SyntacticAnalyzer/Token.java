@@ -16,4 +16,11 @@ public class Token {
 	public String getLexeme() {
 		return lexeme;
 	}
+	
+	// method specifically for - operator
+	public void convUnop2Binop() {
+		if(type == TokenType.UNOP) {
+			type = TokenType.BINOP;
+		}
+	}
 }
