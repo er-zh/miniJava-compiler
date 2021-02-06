@@ -57,6 +57,7 @@ public class Scanner {
 		puncDict.put(')', TokenType.RPAREN);
 		puncDict.put(';', TokenType.SEMICOLON);
 		puncDict.put(',', TokenType.COMMA);
+		puncDict.put('.', TokenType.PERIOD);
 		// '/', '=', '<', '>', '&', '|', '!' need special handling
 		// since they may be part of multi character operators
 		
@@ -169,10 +170,12 @@ public class Scanner {
 			// same as for and op
 			return TokenType.ERROR;
 		default:
-			char op = currentChar;
-			advanceScanner(lexeme);
 			// special cases have been checked
 			// input is either a one char op or a lexing error is reached
+			
+			char op = currentChar;
+			advanceScanner(lexeme);
+			
 			return puncDict.containsKey(op) ? puncDict.get(op) : TokenType.ERROR;
 		}
 	}

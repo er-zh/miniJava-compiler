@@ -14,6 +14,7 @@ public enum TokenType {
 		RSQUARE,
 		SEMICOLON,
 		COMMA,
+		PERIOD,
 	//keywords
 		CLASS,
 		// control structures
