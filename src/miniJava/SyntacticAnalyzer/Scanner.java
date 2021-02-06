@@ -41,6 +41,7 @@ public class Scanner {
 		keywordDict.put("if", TokenType.IF);
 		keywordDict.put("else", TokenType.ELSE);
 		keywordDict.put("while", TokenType.WHILE);
+		keywordDict.put("new", TokenType.NEW);
 		keywordDict.put("return", TokenType.RETURN);
 		
 		// init another hashmap for punctuation

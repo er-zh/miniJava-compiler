@@ -129,8 +129,7 @@ public class Parser {
 				advance();
 				accept(TokenType.ID);
 			}
-		}
-		
+		}	
 	}
 	
 	void parseStatement() {
@@ -247,7 +246,73 @@ public class Parser {
 	}
 	
 	void parseExpr() {
+		switch(currentToken.getType()) {
+		case ID:
+		case THIS:
+			parseRef();
+			
+			if(currentToken.getType() == TokenType.LSQUARE) {
+				advance();
+				parseExpr();
+				accept(TokenType.RSQUARE);
+			}
+			else if(currentToken.getType() == TokenType.LPAREN) {
+				advance();
+				if(currentToken.getType() != TokenType.RPAREN) {
+					parseArgList();
+				}
+				accept(TokenType.RPAREN);
+			}
+			break;
+		case LPAREN:
+			advance();
+			parseExpr();
+			accept(TokenType.RPAREN);
+			break;
+		case NUM_LITERAL:
+		case T:
+		case F:
+			advance();
+			break;
+		case NEW:
+			advance();
+			
+			if(currentToken.getType() == TokenType.ID) {
+				advance();
+				if(currentToken.getType() == TokenType.LPAREN) {
+					advance();
+					accept(TokenType.RPAREN);
+				}
+				else {
+					accept(TokenType.LSQUARE);
+					parseExpr();
+					accept(TokenType.RSQUARE);
+				}
+			}
+			else if(currentToken.getType() == TokenType.INT) {
+				advance();
+			}
+			else {
+				throw new SyntaxError("invalid use of new in expression");
+			}
+		case UNOP:
+			advance();
+			parseExpr();
+			break;
+		default:
+			throw new SyntaxError("invalid expression");
+		}
 		
+		if(currentToken.getType() == TokenType.BINOP) {
+			advance();
+			parseExpr();
+		}
+		else if(currentToken.getLexeme().equals("-")) {
+			currentToken.convUnop2Binop();
+			advance();
+			
+			parseExpr();
+		}
 	}
 	
 	private void accept(TokenType expectedToken) throws SyntaxError {
