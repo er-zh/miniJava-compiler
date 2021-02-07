@@ -32,15 +32,31 @@ public class Parser {
 		accept(TokenType.ID);
 		accept(TokenType.LBRACE);
 		
-		parseVis();
-		parseAccess();
+		while(currentToken.getType() != TokenType.RBRACE) {
+			parseVis();
+			parseAccess();
+			
+			if(currentToken.getType() == TokenType.VOID) {
+				accept(TokenType.VOID);
+				accept(TokenType.ID);
+				
+				parseMethodDecl();
+			}
+			else {
+				parseType();
+				
+				accept(TokenType.ID);
+				
+				if(currentToken.getType() == TokenType.SEMICOLON) {
+					parseFieldDecl();
+				}
+				else {
+					parseMethodDecl();
+				}
+			}
+		}
 		
-		if(currentToken.getType() == TokenType.VOID) {
-			accept(TokenType.VOID);
-		}
-		else {
-			parseType();
-		}
+		accept(TokenType.RBRACE);
 	}
 	
 	void parseFieldDecl() {
