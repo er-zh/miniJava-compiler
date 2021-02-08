@@ -138,17 +138,18 @@ class ParserTests {
 	// following tests parsers ability to correctly parse expressions and statements
 	
 	@Test
+	@Disabled
 	void basicProgram() {
 		String input = "class basicStatements {\n"
 				+ "void main(){\n"
-				//+ "//ComplexNum i = new ComplexNum();\n"
-				+ "this.status = this.rng(v1, v2, this.const);\n";
+				+ "ComplexNum i = new ComplexNum();\n"
+				+ "obj.status = this.rng(v1, v2, this.const);"
+				+ "}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
 		assertTrue(p.parse());
 	}
 	
 	@Test
-	@Disabled
 	void moreControlFlowProgram() {
 		String input = "class basicStatements {\n"
 				+ "public static void main(String[] args){\n"
@@ -157,7 +158,7 @@ class ParserTests {
 				+ "if(!done || finished) {"
 				+ "loop = !noloop && done; }"
 				+ "else loop = this.tf(val);"
-				+ "} return; }";
+				+ "} return; }}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
 		assertTrue(p.parse());
 	}

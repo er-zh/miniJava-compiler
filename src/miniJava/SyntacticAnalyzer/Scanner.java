@@ -29,6 +29,8 @@ public class Scanner {
 		eot = false;
 		
 		// initialize the keyword hashmap with the values of keywords
+		keywordDict.put("new", TokenType.NEW);
+		keywordDict.put("class", TokenType.CLASS);
 		keywordDict.put("public", TokenType.PUBLIC);
 		keywordDict.put("private", TokenType.PRIVATE);
 		keywordDict.put("static", TokenType.STATIC);
@@ -41,7 +43,6 @@ public class Scanner {
 		keywordDict.put("if", TokenType.IF);
 		keywordDict.put("else", TokenType.ELSE);
 		keywordDict.put("while", TokenType.WHILE);
-		keywordDict.put("new", TokenType.NEW);
 		keywordDict.put("return", TokenType.RETURN);
 		
 		// init another hashmap for punctuation

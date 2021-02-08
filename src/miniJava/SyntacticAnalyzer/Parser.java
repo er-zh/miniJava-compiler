@@ -1,6 +1,8 @@
 package miniJava.SyntacticAnalyzer;
 
 public class Parser {
+	private boolean trace = true;
+	
 	private Scanner scanner;
 	private Token currentToken;
 	
@@ -8,15 +10,19 @@ public class Parser {
 		this.scanner = scanner;
 	}
 	
-	public void parse() {
+	public boolean parse() {
+		boolean succeed = false;
 		currentToken = scanner.getNextToken();
 		
 		try {
 			parseProgram();
+			succeed = true;
 		}
 		catch(SyntaxError e) {
 			e.printErrorMsg();
 		}
+		
+		return succeed;
 	}
 	
 	void parseProgram() {
@@ -110,7 +116,8 @@ public class Parser {
 				}
 			}
 			else {
-				throw new SyntaxError("incorrect typing");
+				throw new SyntaxError("invalid typing: expected non-void typing, "
+						+ "but got " + currentToken.getType());
 			}
 		}
 	}
@@ -138,7 +145,8 @@ public class Parser {
 	}
 	
 	void parseRef() {
-		if(currentToken.getType() == TokenType.ID || currentToken.getType() == TokenType.THIS) {
+		if(currentToken.getType() == TokenType.ID 
+				|| currentToken.getType() == TokenType.THIS) {
 			advance();
 			
 			while(currentToken.getType() == TokenType.PERIOD) {
@@ -169,7 +177,7 @@ public class Parser {
 				advance();
 				parseStatement();
 			}
-			
+			break;
 		case WHILE:
 			advance();
 			accept(TokenType.LPAREN);
@@ -186,29 +194,56 @@ public class Parser {
 			accept(TokenType.SEMICOLON);
 			break;
 		case ID:
-			// need to decide between 
-			// type(id) id = expr;
-			// and 
-			// ref (some kind of expr);
+			// need to decide between statements of the form:
+			// type(id) id = expr; and  ref (some kind of expr);
 			// which requires left factoring of possible id
 			advance();
 			
-			if(currentToken.getType() == TokenType.PERIOD) {
-				// remaining part of parsing a ref
+			switch(currentToken.getType()) {
+			case ID:
+				// 2 id's indicates
+				// declaring a new object id with type id
+				advance();
+				parseStatementAssign();
+				break;
+			case PERIOD:
 				while(currentToken.getType() == TokenType.PERIOD) {
 					advance();
 					accept(TokenType.ID);
 				}
 				
 				parseStatementRef();
-			}
-			else {
-				// remaining portion of parsing a type
-				if(currentToken.getType() == TokenType.LSQUARE) {
+				break;
+			case ASSIGNMENT:
+				// if the input is of the form
+				// id =
+				// then the id is a ref
+				parseStatementAssign();
+				break;
+			case LPAREN:
+				advance();
+				
+				if(currentToken.getType() != TokenType.RPAREN) {
+					parseArgList();
+				}
+				
+				accept(TokenType.RPAREN);
+				break;
+			case LSQUARE:
+				advance();
+				
+				if(currentToken.getType() == TokenType.RSQUARE) {
 					advance();
+					accept(TokenType.ID);
+				}
+				else {
+					parseExpr();
 					accept(TokenType.RSQUARE);
 				}
 				parseStatementAssign();
+				break;
+			default:
+				throw new SyntaxError("failed to parse statement");
 			}
 			break;
 		case THIS:
@@ -255,7 +290,6 @@ public class Parser {
 	}
 	
 	private void parseStatementAssign() {
-		accept(TokenType.ID);
 		accept(TokenType.ASSIGNMENT);
 		parseExpr();
 		accept(TokenType.SEMICOLON);
@@ -311,6 +345,7 @@ public class Parser {
 			else {
 				throw new SyntaxError("invalid use of new in expression");
 			}
+			break;
 		case UNOP:
 			advance();
 			parseExpr();
@@ -326,15 +361,12 @@ public class Parser {
 		else if(currentToken.getLexeme().equals("-")) {
 			currentToken.convUnop2Binop();
 			advance();
-			
 			parseExpr();
 		}
 	}
 	
 	private void accept(TokenType expectedToken) throws SyntaxError {
 		if (currentToken.getType() == expectedToken) {
-			/*if (trace)
-				pTrace();*/
 			advance();
 		}
 		else {
@@ -343,11 +375,25 @@ public class Parser {
 	}
 	
 	private void advance() {
-		currentToken = scanner.getNextToken();
+		if (trace) pTrace();
+		
+		do {
+			currentToken = scanner.getNextToken();
+		} while(currentToken.getType() == TokenType.COMMENT);
 		
 		if(currentToken.getType() == TokenType.ERROR) {
 			throw new SyntaxError("Lexical error, " + currentToken.getLexeme());
 		}
+	}
+	
+	private void pTrace() {
+		StackTraceElement [] stl = Thread.currentThread().getStackTrace();
+		for (int i = stl.length - 1; i > 0 ; i--) {
+			if(stl[i].toString().contains("parse"))
+				System.out.println(stl[i]);
+		}
+		System.out.println("accepting: " + currentToken.getType() + " (\"" + currentToken.getLexeme() + "\")");
+		System.out.println();
 	}
 		
 }
