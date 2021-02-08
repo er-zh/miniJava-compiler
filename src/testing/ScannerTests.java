@@ -3,7 +3,6 @@ package testing;
 import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
@@ -62,6 +61,21 @@ class ScannerTests {
 		
 		typeIndex.put("//", TokenType.COMMENT);
 		typeIndex.put("/*", TokenType.COMMENT);
+	}
+	
+	@Test
+	void testMinusOp() {
+		String input = "-";
+		
+		s = new Scanner(str2Stream(input));
+		
+		Token t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.UNOP);
+		assertEquals(t.getLexeme(), "-");
+		
+		t.convUnop2Binop();
+		
+		assertEquals(t.getType(), TokenType.BINOP);
 	}
 	
 	@Test
