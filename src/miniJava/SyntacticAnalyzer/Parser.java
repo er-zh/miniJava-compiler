@@ -254,6 +254,7 @@ public class Parser {
 		case BOOLEAN:
 		case INT:
 			parseType();
+			accept(TokenType.ID);
 			parseStatementAssign();
 			break;
 		default:
@@ -341,6 +342,9 @@ public class Parser {
 			}
 			else if(currentToken.getType() == TokenType.INT) {
 				advance();
+				accept(TokenType.LSQUARE);
+				parseExpr();
+				accept(TokenType.RSQUARE);
 			}
 			else {
 				throw new SyntaxError("invalid use of new in expression");

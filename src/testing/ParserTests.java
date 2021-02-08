@@ -150,6 +150,7 @@ class ParserTests {
 	}
 	
 	@Test
+	@Disabled
 	void moreControlFlowProgram() {
 		String input = "class basicStatements {\n"
 				+ "public static void main(String[] args){\n"
@@ -159,6 +160,19 @@ class ParserTests {
 				+ "loop = !noloop && done; }"
 				+ "else loop = this.tf(val);"
 				+ "} return; }}";
+		Parser p = new Parser(new Scanner(str2Stream(input)));
+		assertTrue(p.parse());
+	}
+	
+	@Test
+	void testTypeAssignStatements() {
+		String input = "class statements {\n"
+				+ "public static void main(String[] args){\n"
+				+ "boolean set = false;"
+				+ "int[] arr = new int[5];\n"
+				+ "Vector v = w.transpose();\n"
+				+ "Vector[] mat = w.mm(v + v);"
+				+ "}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
 		assertTrue(p.parse());
 	}
