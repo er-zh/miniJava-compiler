@@ -3,6 +3,8 @@ package testing;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.io.ByteArrayInputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 import org.junit.jupiter.api.Test;
@@ -134,6 +136,14 @@ class ParserTests {
 		assertFalse(p.parse());
 	}
 	
+	@Test
+	void testDegenCase() {
+		String input = "";
+		
+		Parser p = new Parser(new Scanner(str2Stream(input)));
+		assertTrue(p.parse());
+	}
+	
 	//-------------------------------------------------------------------------------//
 	// following tests parsers ability to correctly parse expressions and statements
 	
@@ -151,7 +161,7 @@ class ParserTests {
 	
 	@Test
 	@Disabled
-	void moreControlFlowProgram() {
+	void moreControlFlowStatements() {
 		String input = "class basicStatements {\n"
 				+ "public static void main(String[] args){\n"
 				+ "while(loop == true){"
@@ -159,12 +169,14 @@ class ParserTests {
 				+ "if(!done || finished) {"
 				+ "loop = !noloop && done; }"
 				+ "else loop = this.tf(val);"
-				+ "} return; }}";
+				+ "} return;\n"
+				+ "return a - b;}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
 		assertTrue(p.parse());
 	}
 	
 	@Test
+	@Disabled
 	void testTypeAssignStatements() {
 		String input = "class statements {\n"
 				+ "public static void main(String[] args){\n"
@@ -175,6 +187,128 @@ class ParserTests {
 				+ "}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
 		assertTrue(p.parse());
+	}
+	
+	@Test
+	@Disabled
+	void testRefdStatements() {
+		String input = "class statements {\n"
+				+ "public static void main(String[] args){\n"
+				+ "this = that;\n"
+				+ "arr = obj.normal.dist;"
+				+ "method();"
+				+ "method(overload);"
+				+ "arr[0] = 10;"
+				+ "}}";
+		Parser p = new Parser(new Scanner(str2Stream(input)));
+		assertTrue(p.parse());
+	}
+	
+	@Test
+	@Disabled
+	void testMultiClassProgram() {
+		String input = "class NumberDemo {\r\n"
+				+ "	public static void main(String [] a) {\r\n"
+				+ "		System.out.println(Math.choose(10, 4));\r\n"
+				+ "		System.out.println(Math.gcd(84, 132));\r\n"
+				+ "	}\r\n"
+				+ "}\r\n"
+				+ "\r\n"
+				+ "// The following code contains these legitimage syntax usage:\r\n"
+				+ "// - Variable declarations\r\n"
+				+ "// - Unary and complicated binary arithmetic operations\r\n"
+				+ "// - While loop\r\n"
+				+ "class Math {\r\n"
+				+ "	public int choose(int n, int k) {\r\n"
+				+ "		int res = 0;\r\n"
+				+ "     int i = 0;\r\n"
+				+ "		if (!(n<k)) {\r\n"
+				+ "			// n! / (k! (n-k)!)\r\n"
+				+ "			i = 1;\r\n"
+				+ "			res = -1; // just to test unary +\r\n"
+				+ "			while (i <= k) {\r\n"
+				+ "				res = res * (n-k+i) / i;\r\n"
+				+ "			}\r\n"
+				+ "		} else {\r\n"
+				+ "			res = 0;\r\n"
+				+ "		}\r\n"
+				+ "		return res;\r\n"
+				+ "	}\r\n"
+				+ "	public int gcd(int a, int b) {\r\n"
+				+ "		int tmp = 0;\r\n"
+				+ "     int res = 0;\r\n"
+				+ "		if (a < b) {\r\n"
+				+ "			tmp = a;\r\n"
+				+ "			a = b;\r\n"
+				+ "			b = tmp;\r\n"
+				+ "		} else {\r\n"
+				+ "		}\r\n"
+				+ "		if (b == 0)\r\n"
+				+ "			res = a;\r\n"
+				+ "		else if ((a / b) * b != a) {\r\n"
+				+ "			res = this.gcd(b, a-b*(a/b));\r\n"
+				+ "		} else {\r\n"
+				+ "			res = b;\r\n"
+				+ "		}\r\n"
+				+ "		return res;\r\n"
+				+ "	}\r\n"
+				+ "}";
+		
+		Parser p = new Parser(new Scanner(str2Stream(input)));
+		assertTrue(p.parse());
+	}
+	
+	@Test
+	@Disabled
+	void testFailurePrograms() {
+		String input = "class Failure {\r\n"
+				+ "	public static void main(String [] a) {\n"
+				+ "			//declaring variables inside functions is not allowed.\r\n"
+				+ "			Numbers n;\n"
+				+ "			n = new Numbers();\n"
+				+ "			n.choose(10, 4);\n"
+				+ "			System.out.println(\"10 choose 4 is \");\n"
+				+ "			System.out.println(new Numbers().choose(10, 4));\n"
+				+ "			System.out.println(\"\\nGCD of 84, 132 is \")\n;"
+				+ "	}}";
+		
+		Parser p = new Parser(new Scanner(str2Stream(input)));
+		assertFalse(p.parse());
+		
+		input = "class Failure {\r\n"
+				+ "public static void main(String [] a) {"
+				+ "System.out.println(int);}}";
+		
+		p = new Parser(new Scanner(str2Stream(input)));
+		assertFalse(p.parse());
+	}
+	
+	@Test
+	void testFileInputStream() {
+		String[] args = new String[2];
+		args[0] = "./src/testing/valid_prog_Nums.java";
+		args[1] = "./src/testing/valid_prog_qs.java";
+		
+		for(String fname : args) {
+			int rc = 0;
+			InputStream inputStream = null;
+			try {
+				inputStream = new FileInputStream(fname);
+			} catch (FileNotFoundException e) {
+				System.out.println("Input file " + fname + " not found");
+				rc = 1;
+				System.exit(rc);
+			}
+			
+			Scanner s = new Scanner(inputStream);
+			Parser p = new Parser(s);
+			
+			boolean success = false;
+			
+			success = p.parse();
+			
+			assertTrue(success);
+		}
 	}
 	
 	private InputStream str2Stream(String s) {

@@ -34,6 +34,8 @@ class ScannerTests {
 		typeIndex.put("else", TokenType.ELSE);
 		typeIndex.put("while", TokenType.WHILE);
 		typeIndex.put("return", TokenType.RETURN);
+		typeIndex.put("class", TokenType.CLASS);
+		typeIndex.put("new", TokenType.NEW);
 			
 		typeIndex.put("+", TokenType.BINOP);
 		typeIndex.put("*", TokenType.BINOP);
@@ -58,6 +60,7 @@ class ScannerTests {
 		typeIndex.put(";", TokenType.SEMICOLON);
 		typeIndex.put(",", TokenType.COMMA);
 		typeIndex.put("=", TokenType.ASSIGNMENT);
+		typeIndex.put(".", TokenType.PERIOD);
 		
 		typeIndex.put("//", TokenType.COMMENT);
 		typeIndex.put("/*", TokenType.COMMENT);
@@ -129,8 +132,9 @@ class ScannerTests {
 	@Test
 	void testKeywords() {
 		String input = "public private pirate static void"
-				+ "boolean int true ture false if else"
-				+ "while return class this thjis"
+				+ "boolean int true false if else"
+				+ "while return class new this thjis"
+				// non keyword inputs
 				+ "aaaaaaaa aa_aaaa"
 				+ "num12342342344523432134234"
 				+ "nums2132_underscore____";
@@ -271,12 +275,70 @@ class ScannerTests {
 	}
 	
 	@Test
-	void testPunc() {
+	void testPuncAndOps() {
+		String input = "{ [ , . * ; ) ( ] = == + - / <= ! || }";
+		s = new Scanner(str2Stream(input));
+		
+		Token t;
+		for(String word : input.split("\\s+")) {
+			t = s.getNextToken();
+			
+			assertEquals(t.getLexeme(), word);
+			
+			TokenType type = typeIndex.get(t.getLexeme());
+			type = (type != null) ? type : TokenType.ID;
+			assertEquals(t.getType(), type);
+		}
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.EOT);
+	}
+	
+	@Test
+	void testMultiLineComment() {
 		String input = "/*var1 & \nmultiline comment\nvar2*/";
 
 		s = new Scanner(str2Stream(input));
 		
 		Token t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.COMMENT);
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.EOT);
+		
+		input = "/*	This is a multiline\r\n"
+				+ "	comment with escapes\r\n"
+				+ "	\\e \\n \\\\ \\e \\abc\r\n"
+				+ "	/* /////*****/";
+		
+		s = new Scanner(str2Stream(input));
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.COMMENT);
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.EOT);
+		
+		
+
+		input = "/*	This is a multiline\r\n"
+				+ "	comment with escapes\r\n"
+				+ "	\\e \\n \\\\ \\e \\abc\r\n"
+				+ "	/* /////*****/";
+		
+		s = new Scanner(str2Stream(input));
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.COMMENT);
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.EOT);
+		
+
+		input = "/***\n"
+				+ "some stuff in between\n"
+				+ "*****\\n\\ ****** /***/";
+		
+		s = new Scanner(str2Stream(input));
+		
+		t = s.getNextToken();
 		assertEquals(t.getType(), TokenType.COMMENT);
 		t = s.getNextToken();
 		assertEquals(t.getType(), TokenType.EOT);
@@ -310,6 +372,15 @@ class ScannerTests {
 		
 		t = s.getNextToken();
 		
+		assertEquals(t.getType(), TokenType.ERROR);
+		
+		input = "a % b";
+		
+		s = new Scanner(str2Stream(input));
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.ID);
+		t = s.getNextToken();
 		assertEquals(t.getType(), TokenType.ERROR);
 	}
 	

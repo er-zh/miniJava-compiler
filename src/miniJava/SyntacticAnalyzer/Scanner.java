@@ -75,7 +75,7 @@ public class Scanner {
 		}
 		
 		StringBuilder currentLexeme = new StringBuilder();
-		
+			
 		TokenType type = scan(currentLexeme);
 
 		return new Token(type, currentLexeme.toString());
@@ -185,6 +185,7 @@ public class Scanner {
 	private void consumeComment(boolean multiline) {		
 		if(multiline) {
 			boolean loop = true;
+			boolean star = false;
 			
 			while(loop) {
 				if(eot) break; // TODO need to throw error in the case of malformed
@@ -194,13 +195,15 @@ public class Scanner {
 				// a comment need not be saved
 				
 				if(currentChar == '*') {
+					star = true;
+				}
+				else if(currentChar == '/' && star == true) {
 					nextChar();
 					
-					if(currentChar == '/') {
-						nextChar();
-						
-						loop = false;
-					}
+					loop = false;
+				}
+				else {
+					star = false;
 				}
 			}
 		}

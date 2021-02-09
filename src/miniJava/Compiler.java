@@ -6,14 +6,14 @@ import java.io.InputStream;
 
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.Scanner;
-import miniJava.SyntacticAnalyzer.Token;
-import miniJava.SyntacticAnalyzer.TokenType;
+//import miniJava.SyntacticAnalyzer.Token;
+//import miniJava.SyntacticAnalyzer.TokenType;
 
 public class Compiler {
 	private static int rc = 0;
 	
 	public static void main(String[] args) {
-		/*InputStream inputStream = null;
+		InputStream inputStream = null;
 		try {
 			inputStream = new FileInputStream(args[0]);
 		} catch (FileNotFoundException e) {
@@ -22,25 +22,11 @@ public class Compiler {
 			System.exit(rc);
 		}
 		
-		Scanner s = new Scanner(inputStream);*/
-		
-		Scanner s = new Scanner(System.in);
+		Scanner s = new Scanner(inputStream);
 		Parser p = new Parser(s);
 		
-		p.parse();
+		if(!p.parse()) rc=4;
 		
-		/*Token t = s.getNextToken();
-		System.out.println(t.getType());
-		System.out.println(t.getLexeme());
-		
-		while(t.getType() != TokenType.EOT) {
-			t = s.getNextToken();
-			System.out.println(t.getType());
-			System.out.println(t.getLexeme());
-		}*/
-		
-		
-		System.out.println(rc);
 		System.exit(rc);
 	}
 

@@ -1,7 +1,7 @@
 package miniJava.SyntacticAnalyzer;
 
 public class Parser {
-	private boolean trace = true;
+	private boolean trace = false;
 	
 	private Scanner scanner;
 	private Token currentToken;
@@ -12,7 +12,11 @@ public class Parser {
 	
 	public boolean parse() {
 		boolean succeed = false;
-		currentToken = scanner.getNextToken();
+		
+		// load in the first token
+		do {
+			currentToken = scanner.getNextToken();
+		} while(currentToken.getType() == TokenType.COMMENT);
 		
 		try {
 			parseProgram();
@@ -228,6 +232,7 @@ public class Parser {
 				}
 				
 				accept(TokenType.RPAREN);
+				accept(TokenType.SEMICOLON);
 				break;
 			case LSQUARE:
 				advance();
