@@ -1,7 +1,7 @@
 package miniJava.SyntacticAnalyzer;
 
 public class Parser {
-	private boolean trace = false;
+	private boolean trace = true;
 	
 	private Scanner scanner;
 	private Token currentToken;

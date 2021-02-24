@@ -144,6 +144,36 @@ class ParserTests {
 		assertTrue(p.parse());
 	}
 	
+	@Test
+	@Disabled
+	void testNestedIfs() {
+		String input = "class ifNest {"
+				+ "    public static void main(String[] args) {"
+				+ "        System.out.println(test());"
+				+ "    }\n"
+				+ "    public boolean test() {"
+				+ "        int a = 10;\r"
+				+ "        if(a > 0) if(a > 5) if(a > 10) return true;"
+				+ "               else return false; else return true;"
+				+ "}}";
+		
+		Parser p = new Parser(new Scanner(str2Stream(input)));
+		assertTrue(p.parse());
+	}
+	
+	@Test
+	@Disabled
+	void testDegenOps() {
+		String input = "class grossOps {\n"
+				+ "public static void main(String[] args){"
+				+ "int neg = ---3;\n"
+				+ "int minus = 4 + -3;\n"
+				+ "int confuse = 4 - - 7;\n"
+				+ "}}";
+		Parser p = new Parser(new Scanner(str2Stream(input)));
+		assertTrue(p.parse());
+	}
+	
 	//-------------------------------------------------------------------------------//
 	// following tests parsers ability to correctly parse expressions and statements
 	
@@ -284,6 +314,7 @@ class ParserTests {
 	}
 	
 	@Test
+	@Disabled
 	void testFileInputStream() {
 		String[] args = new String[2];
 		args[0] = "./src/testing/valid_prog_Nums.java";

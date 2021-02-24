@@ -9,14 +9,11 @@ public class Scanner {
 	// TODO find the correct end of stream markers
 	private final static char eolUnix = '\n';
 	private final static char eolWindows = '\r';
+	
 	private final static Pattern letterRx = Pattern.compile("[a-zA-Z]");
 	private final static Pattern digitRx = Pattern.compile("[0-9]");
 	private final static Pattern whitespaceRx = Pattern.compile(" |\t|\n|\r");
-	/*private final static Pattern keywordRx = Pattern.compile("public|private|"
-			+ "static|this|"
-			+ "boolean|true|false|int|void"
-			+ "if|else|while|return");*/
-	// TODO mess with load factor and see if anything changes
+
 	private final HashMap<String, TokenType> keywordDict = new HashMap<String, TokenType>(60);
 	private final HashMap<Character, TokenType> puncDict = new HashMap<Character, TokenType>(50);
 	
@@ -124,8 +121,7 @@ public class Scanner {
 			advanceScanner(lexeme);
 			
 			if(currentChar == '/' || currentChar == '*') {
-				consumeComment(currentChar == '*');
-				return TokenType.COMMENT;
+				return consumeComment(currentChar == '*');
 			}
 			return TokenType.BINOP;
 		case '<':
@@ -169,7 +165,7 @@ public class Scanner {
 				advanceScanner(lexeme);
 				return TokenType.BINOP;
 			}
-			// same as for and op
+			// same as and op
 			return TokenType.ERROR;
 		default:
 			// special cases have been checked
@@ -182,14 +178,14 @@ public class Scanner {
 		}
 	}
 	
-	private void consumeComment(boolean multiline) {		
+	private TokenType consumeComment(boolean multiline) {		
 		if(multiline) {
 			boolean loop = true;
 			boolean star = false;
 			
 			while(loop) {
-				if(eot) break; // TODO need to throw error in the case of malformed
-				// comment
+				if(eot) return TokenType.ERROR; 
+				// raise error in the case of malformed comment
 				
 				nextChar(); //called directly bc the lexeme associated with
 				// a comment need not be saved
@@ -208,11 +204,13 @@ public class Scanner {
 			}
 		}
 		else {
-			while(currentChar != eolWindows && currentChar != eolUnix) {
+			while(currentChar != eolWindows && currentChar != eolUnix && !eot) {
 				nextChar();
 			}
 			nextChar();
 		}
+		
+		return TokenType.COMMENT;
 	}
 	
 	private void advanceScanner(StringBuilder lexeme) {
@@ -242,6 +240,7 @@ public class Scanner {
 		
 	}
 	
+
 	private boolean isDigit(char c) {
 		return digitRx.matcher(c+"").matches();
 	}
