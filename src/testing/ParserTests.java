@@ -16,33 +16,31 @@ import miniJava.SyntacticAnalyzer.Scanner;
 class ParserTests {
 
 	@Test
-	@Disabled
 	void testClassDeclParsing() {
 		String input = "class test { }";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
 		
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 		
 		input = "class test { } class test2 {\n}class t3{} class t4{}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 		
 		input = "class fails {";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		input = "class {}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		input = "class fails {}class here } {";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 	}
 	
 	@Test
-	@Disabled
 	void testFieldDecs() {
 		String input = "class test { private static type typed;\n"
 				+ "public type pubfield;"
@@ -52,32 +50,32 @@ class ParserTests {
 				+ "public boolean TF;}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
 		
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 		
 		// grammar enforces visibility before acces
 		input = "class fails {static private sometype var;}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		// grammar doesn't allow bool arrays
 		input = "class fails {boolean[] bb;}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		// no semicolon
 		input = "class fails {private var}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		// cannot declare a void typed value
 		input = "class fails {public static void no_no;}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		// declaring a variable without a name
 		input = "class fails {int[] ;}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 	}
 
 	@Test
@@ -86,7 +84,7 @@ class ParserTests {
 		String input = "class classic {\n"
 				+ "public static void main(String[] args){}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 		
 		input = "class methods {"
 				+ "int m1(){}\n"
@@ -94,23 +92,23 @@ class ParserTests {
 				+ "static typed[] m3(){}"
 				+ "private void m4(Vector[] vs, Mat m, int size){}\n}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 		
 		input = "class fails {method(){}}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		input = "class fails {void method{}}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		input = "class fails {void method(static variable){}}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		input = "class fails {void method();}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 	}
 	
 	@Test
@@ -121,19 +119,19 @@ class ParserTests {
 				+ "System.out.println(message);\n"
 				+ "this.that.which.there.then(v1, v2);}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 		
 		input = "class classic {\n"
 				+ "public static void badrefs(){\n"
 				+ "this.this.name = 12;}}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		input = "class classic {\n"
 				+ "public static void badrefs(){\n"
 				+ "name.this.name = 12;}}";
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 	}
 	
 	@Test
@@ -141,7 +139,7 @@ class ParserTests {
 		String input = "";
 		
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 	}
 	
 	@Test
@@ -158,7 +156,7 @@ class ParserTests {
 				+ "}}";
 		
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 	}
 	
 	@Test
@@ -171,7 +169,7 @@ class ParserTests {
 				+ "int confuse = 4 - - 7;\n"
 				+ "}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 	}
 	
 	//-------------------------------------------------------------------------------//
@@ -186,7 +184,7 @@ class ParserTests {
 				+ "obj.status = this.rng(v1, v2, this.const);"
 				+ "}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 	}
 	
 	@Test
@@ -202,7 +200,7 @@ class ParserTests {
 				+ "} return;\n"
 				+ "return a - b;}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 	}
 	
 	@Test
@@ -216,7 +214,7 @@ class ParserTests {
 				+ "Vector[] mat = w.mm(v + v);"
 				+ "}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 	}
 	
 	@Test
@@ -231,7 +229,7 @@ class ParserTests {
 				+ "arr[0] = 10;"
 				+ "}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 	}
 	
 	@Test
@@ -285,7 +283,7 @@ class ParserTests {
 				+ "}";
 		
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertTrue(p.parse());
+		assertTrue(p.parse() != null);
 	}
 	
 	@Test
@@ -303,22 +301,21 @@ class ParserTests {
 				+ "	}}";
 		
 		Parser p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 		
 		input = "class Failure {\r\n"
 				+ "public static void main(String [] a) {"
 				+ "System.out.println(int);}}";
 		
 		p = new Parser(new Scanner(str2Stream(input)));
-		assertFalse(p.parse());
+		assertFalse(p.parse() != null);
 	}
 	
 	@Test
-	@Disabled
 	void testFileInputStream() {
 		String[] args = new String[2];
-		args[0] = "./src/testing/valid_prog_Nums.java";
-		args[1] = "./src/testing/valid_prog_qs.java";
+		args[0] = "../tests/pa1_selfmade/valid_nums.java";
+		args[1] = "../tests/pa1_selfmade/valid_qs.java";
 		
 		for(String fname : args) {
 			int rc = 0;
@@ -334,11 +331,7 @@ class ParserTests {
 			Scanner s = new Scanner(inputStream);
 			Parser p = new Parser(s);
 			
-			boolean success = false;
-			
-			success = p.parse();
-			
-			assertTrue(success);
+			assertTrue(p.parse() != null);
 		}
 	}
 	

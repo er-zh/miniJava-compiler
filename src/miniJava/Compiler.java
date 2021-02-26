@@ -25,7 +25,7 @@ public class Compiler {
 		Scanner s = new Scanner(inputStream);
 		Parser p = new Parser(s);
 		
-		if(!p.parse()) rc=4;
+		if(p.parse() == null) rc=4;
 		
 		System.exit(rc);
 	}
