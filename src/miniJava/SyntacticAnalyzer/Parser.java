@@ -449,8 +449,83 @@ public class Parser {
 		parseExpr();
 		accept(TokenType.SEMICOLON);
 	}
-
+	
 	void parseExpr() {
+		parseConj();
+		
+		while(currentToken.getType() == TokenType.BINOP && currentToken.getLexeme().equals("||")) {
+			advance();
+			parseConj();
+		}
+	}
+	
+	void parseConj() {
+		parseEq();
+		
+		while(currentToken.getType() == TokenType.BINOP && currentToken.getLexeme().equals("&&")) {
+			advance();
+			parseEq();
+		}
+	}
+	
+	void parseEq() {
+		parseRel();
+		
+		while(currentToken.getType() == TokenType.BINOP && 
+				(currentToken.getLexeme().equals("==") || currentToken.getLexeme().equals("!="))) {
+			advance();
+			parseRel();
+		}
+	}
+	
+	void parseRel() {
+		parseAdd();
+		
+		while(currentToken.getType() == TokenType.BINOP && 
+				(currentToken.getLexeme().equals("<") 
+						|| currentToken.getLexeme().equals(">")
+						|| currentToken.getLexeme().equals(">=")
+						|| currentToken.getLexeme().equals("<="))) {
+			advance();
+			parseAdd();
+		}
+	}
+	
+	void parseAdd() {
+		parseMult();
+		
+		while(currentToken.getType() == TokenType.BINOP && currentToken.getLexeme().equals("+") 
+				|| currentToken.getType() == TokenType.UNOP && currentToken.getLexeme().equals("-")) {
+			
+			if (currentToken.getLexeme().equals("-")) currentToken.convUnop2Binop();
+			
+			advance();
+			parseMult();
+		}
+	}
+	
+	void parseMult() {
+		parseUnary();
+		
+		while(currentToken.getType() == TokenType.BINOP && 
+				(currentToken.getLexeme().equals("*") || currentToken.getLexeme().equals("/"))) {
+			
+			advance();
+			parseUnary();
+		}
+	}
+	
+	void parseUnary() {
+		if(currentToken.getType() == TokenType.UNOP) {
+			advance();
+			parseUnary();
+		}
+		else {
+			parseVal();
+		}
+	}
+
+	void parseVal() {
 		switch (currentToken.getType()) {
 		case ID:
 		case THIS:
@@ -500,21 +575,8 @@ public class Parser {
 				throw new SyntaxError("invalid use of new in expression");
 			}
 			break;
-		case UNOP:
-			advance();
-			parseExpr();
-			break;
 		default:
 			throw new SyntaxError("invalid expression");
-		}
-
-		if (currentToken.getType() == TokenType.BINOP) {
-			advance();
-			parseExpr();
-		} else if (currentToken.getLexeme().equals("-")) {
-			currentToken.convUnop2Binop();
-			advance();
-			parseExpr();
 		}
 	}
 
