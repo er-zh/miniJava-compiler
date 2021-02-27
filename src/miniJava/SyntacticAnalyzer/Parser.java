@@ -188,16 +188,17 @@ public class Parser {
 		return paramList;
 	}
 
-	// TODO actually fill out the argument list with the exprs from parseExpr
-	// can be empty
+	// associated rule can be empty
+	// however if this method is called it is expected that there 
+	// is at least one argument provided
 	ExprList parseArgList() {
 		ExprList args = new ExprList();
 
-		parseExpr();
+		args.add(parseExpr());
 
 		while (currentToken.getType() == TokenType.COMMA) {
 			advance();
-			parseExpr();
+			args.add(parseExpr());
 		}
 
 		return args;
@@ -279,7 +280,7 @@ public class Parser {
 			ex = null; // the expression whose value is being returned
 
 			if (currentToken.getType() != TokenType.SEMICOLON) {
-				parseExpr(); // TODO put the exprValue in the retExpr
+				ex = parseExpr();
 			}
 			accept(TokenType.SEMICOLON);
 
@@ -298,10 +299,9 @@ public class Parser {
 				// 2 id's indicates
 				// variable declaration of id with type id
 				String varName = currentToken.getLexeme(); // name of var being declared
-				ex = null; // expr whose value var id is initialized with
 				
 				advance();
-				parseStatementAssign(); // TODO put actual exprValue in varValue
+				ex = parseStatementAssign(); // expr whose value var id is initialized with
 
 				statemt = new VarDeclStmt(new VarDecl(new ClassType(startingId),
 						varName), ex);
@@ -323,10 +323,8 @@ public class Parser {
 				// id =
 				// then the id is a ref
 				ref = new IdRef(startingId);
-				ex = null; // expr value assigned to var id
-				
-				parseStatementAssign(); // TODO put actual exprValue in assignVal
-				
+				ex = parseStatementAssign(); // expr value assigned to var id
+								
 				statemt = new AssignStmt(ref, ex);
 				break;
 			case LPAREN:
@@ -351,22 +349,19 @@ public class Parser {
 				if (currentToken.getType() == TokenType.RSQUARE) { // array var decl
 					advance();
 
-					ex = null; // val array is initialized with
 					varName = currentToken.getLexeme(); // name of the array
 					accept(TokenType.ID);
 
-					parseStatementAssign(); // TODO put actual exprValue in arrayVal
+					ex = parseStatementAssign(); // val array is initialized with
 
 					statemt = new VarDeclStmt(new VarDecl(new ArrayType(new ClassType(startingId)), 
 							varName), ex);
 				} else { // indexed assign
 					ref = new IdRef(startingId);
-					Expression indexExpr = null;
-					ex = null; // value assigned to ref[indexExpr]
 					
-					parseExpr(); // TODO put actual exprValue in indexExpr
+					Expression indexExpr = parseExpr();
 					accept(TokenType.RSQUARE);
-					parseStatementAssign(); // TODO put actual exprValue in assignValue
+					ex = parseStatementAssign(); // value assigned to ref[indexExpr]
 					
 					statemt = new IxAssignStmt(ref, indexExpr, ex);
 				}
@@ -384,10 +379,9 @@ public class Parser {
 		case INT:
 			TypeDenoter type = parseType();
 			String varName = currentToken.getLexeme();
-			ex = null; // value that var is initialized to
 
 			accept(TokenType.ID);
-			parseStatementAssign(); // TODO put actual exprValue in varValue
+			ex = parseStatementAssign(); // value that var is initialized to
 
 			statemt = new VarDeclStmt(new VarDecl(type, varName), ex);
 			break;
@@ -405,20 +399,17 @@ public class Parser {
 		case ASSIGNMENT:
 			advance();
 			
-			Expression ex = null; 
-			parseExpr(); // TODO put exprvalue into ex
+			Expression ex = parseExpr();
 			
 			statemt = new AssignStmt(ref, ex);
 			break;
 		case LSQUARE:
 			advance();
-			
-			ex = null; 
-			Expression indexExpr = null;
-			parseExpr(); // TODO indexExpr
+			 
+			Expression indexExpr = parseExpr();
 			accept(TokenType.RSQUARE);
 			accept(TokenType.ASSIGNMENT);
-			parseExpr(); // TODO assigned to ref[index]
+			ex = parseExpr();
 			
 			statemt = new IxAssignStmt(ref, indexExpr, ex);
 			break;
@@ -427,7 +418,7 @@ public class Parser {
 			
 			ExprList argList = null;
 			if (currentToken.getType() != TokenType.RPAREN) {
-				parseArgList(); // TODO get the actual list of exprs
+				argList = parseArgList();
 			}
 
 			accept(TokenType.RPAREN);
@@ -442,135 +433,177 @@ public class Parser {
 		return statemt;
 	}
 
-	// TODO return expr associated with assignment
-	private void parseStatementAssign() {
-		Expression expr;
+	private Expression parseStatementAssign() {
 		accept(TokenType.ASSIGNMENT);
-		parseExpr();
+		Expression ex = parseExpr();
 		accept(TokenType.SEMICOLON);
+		
+		return ex;
 	}
 	
-	void parseExpr() {
-		parseConj();
+	Expression parseExpr() {
+		Expression leftExpr = parseConj();
 		
 		while(currentToken.getType() == TokenType.BINOP && currentToken.getLexeme().equals("||")) {
+			Operator or = new Operator(currentToken);
 			advance();
-			parseConj();
+			
+			leftExpr = new BinaryExpr(or, leftExpr, parseConj());
 		}
+		
+		return leftExpr;
 	}
 	
-	void parseConj() {
-		parseEq();
+	Expression parseConj() {
+		Expression leftExpr = parseEq();
 		
 		while(currentToken.getType() == TokenType.BINOP && currentToken.getLexeme().equals("&&")) {
+			Operator and = new Operator(currentToken);
 			advance();
-			parseEq();
+			leftExpr = new BinaryExpr(and, leftExpr, parseEq());
 		}
+		
+		return leftExpr;
 	}
 	
-	void parseEq() {
-		parseRel();
+	Expression parseEq() {
+		Expression leftExpr = parseRel();
 		
 		while(currentToken.getType() == TokenType.BINOP && 
 				(currentToken.getLexeme().equals("==") || currentToken.getLexeme().equals("!="))) {
+			Operator equality = new Operator(currentToken);
 			advance();
-			parseRel();
+			leftExpr = new BinaryExpr(equality, leftExpr, parseRel());
 		}
+		
+		return leftExpr;
 	}
 	
-	void parseRel() {
-		parseAdd();
+	Expression parseRel() {
+		Expression leftExpr = parseAdd();
 		
 		while(currentToken.getType() == TokenType.BINOP && 
 				(currentToken.getLexeme().equals("<") 
 						|| currentToken.getLexeme().equals(">")
 						|| currentToken.getLexeme().equals(">=")
 						|| currentToken.getLexeme().equals("<="))) {
+			Operator relation = new Operator(currentToken);
 			advance();
-			parseAdd();
+			leftExpr = new BinaryExpr(relation, leftExpr, parseAdd());
 		}
+		
+		return leftExpr;
 	}
 	
-	void parseAdd() {
-		parseMult();
+	Expression parseAdd() {
+		Expression leftExpr = parseMult();
 		
 		while(currentToken.getType() == TokenType.BINOP && currentToken.getLexeme().equals("+") 
 				|| currentToken.getType() == TokenType.UNOP && currentToken.getLexeme().equals("-")) {
-			
 			if (currentToken.getLexeme().equals("-")) currentToken.convUnop2Binop();
 			
+			Operator add = new Operator(currentToken);
 			advance();
-			parseMult();
+			leftExpr = new BinaryExpr(add, leftExpr, parseMult());
 		}
+		
+		return leftExpr;
 	}
 	
-	void parseMult() {
-		parseUnary();
+	Expression parseMult() {
+		Expression leftExpr = parseUnary();
 		
 		while(currentToken.getType() == TokenType.BINOP && 
 				(currentToken.getLexeme().equals("*") || currentToken.getLexeme().equals("/"))) {
-			
+			Operator times = new Operator(currentToken);
+	
 			advance();
-			parseUnary();
+			leftExpr = new BinaryExpr(times, leftExpr, parseUnary());
 		}
+		
+		return leftExpr;
 	}
 	
-	void parseUnary() {
+	Expression parseUnary() {
 		if(currentToken.getType() == TokenType.UNOP) {
+			Operator negate = new Operator(currentToken);
 			advance();
-			parseUnary();
+			return new UnaryExpr(negate, parseUnary());
 		}
 		else {
-			parseVal();
+			return parseVal();
 		}
 	}
 
-	void parseVal() {
+	Expression parseVal() {
+		Expression expr = null;
 		switch (currentToken.getType()) {
 		case ID:
 		case THIS:
-			parseRef();
+			Reference ref = parseRef();
 
 			if (currentToken.getType() == TokenType.LSQUARE) {
 				advance();
-				parseExpr();
+				Expression indexExpr = parseExpr();
 				accept(TokenType.RSQUARE);
-			} else if (currentToken.getType() == TokenType.LPAREN) {
+				
+				expr = new IxExpr(ref, indexExpr);
+			}
+			else if (currentToken.getType() == TokenType.LPAREN) {
 				advance();
+				
+				ExprList argsList = null; // TODO make sure empty inputs consistent
 				if (currentToken.getType() != TokenType.RPAREN) {
-					parseArgList();
+					argsList = parseArgList();
 				}
 				accept(TokenType.RPAREN);
+				
+				expr = new CallExpr(ref, argsList);
+			}
+			else {
+				expr = new RefExpr(ref);
 			}
 			break;
 		case LPAREN:
 			advance();
-			parseExpr();
+			expr = parseExpr();
 			accept(TokenType.RPAREN);
 			break;
 		case NUM_LITERAL:
+			expr = new LiteralExpr(new IntLiteral(currentToken));
+			advance();
+			break;
 		case T:
 		case F:
+			expr = new LiteralExpr(new BooleanLiteral(currentToken));
 			advance();
 			break;
 		case NEW:
 			advance();
 
 			if (currentToken.getType() == TokenType.ID) {
+				ClassType newclass = new ClassType(new Identifier(currentToken));
 				advance();
+				
 				if (currentToken.getType() == TokenType.LPAREN) {
 					advance();
 					accept(TokenType.RPAREN);
+					
+					expr = new NewObjectExpr(newclass);
 				} else {
 					accept(TokenType.LSQUARE);
-					parseExpr();
+					Expression sizeExpr = parseExpr();
 					accept(TokenType.RSQUARE);
+					
+					expr = new NewArrayExpr(new ArrayType(newclass), sizeExpr);
 				}
 			} else if (currentToken.getType() == TokenType.INT) {
 				advance();
 				accept(TokenType.LSQUARE);
-				parseExpr();
+				Expression sizeExpr = parseExpr();
 				accept(TokenType.RSQUARE);
+				
+				expr = new NewArrayExpr(new ArrayType(new BaseType(TypeKind.INT)), sizeExpr);
 			} else {
 				throw new SyntaxError("invalid use of new in expression");
 			}
@@ -578,6 +611,8 @@ public class Parser {
 		default:
 			throw new SyntaxError("invalid expression");
 		}
+		
+		return expr;
 	}
 
 	private void accept(TokenType expectedToken) throws SyntaxError {
