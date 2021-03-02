@@ -188,16 +188,17 @@ public class Parser {
 		return paramList;
 	}
 
-	// TODO actually fill out the argument list with the exprs from parseExpr
 	// can be empty
+	// however if the method is called it is expected that 
+	// there is at least one argument provided
 	ExprList parseArgList() {
 		ExprList args = new ExprList();
 
-		parseExpr();
+		args.add(parseExpr());
 
 		while (currentToken.getType() == TokenType.COMMA) {
 			advance();
-			parseExpr();
+			args.add(parseExpr());
 		}
 
 		return args;
@@ -247,7 +248,7 @@ public class Parser {
 			Statement els = null;
 
 			accept(TokenType.LPAREN);
-			parseExpr();
+			ex = parseExpr();
 			accept(TokenType.RPAREN);
 
 			then = parseStatement();
@@ -262,11 +263,10 @@ public class Parser {
 		case WHILE:
 			advance();
 
-			ex = null; // loop condition
 			Statement body;
 
 			accept(TokenType.LPAREN);
-			parseExpr();
+			ex = parseExpr(); // loop condition
 			accept(TokenType.RPAREN);
 
 			body = parseStatement();
@@ -279,7 +279,7 @@ public class Parser {
 			ex = null; // the expression whose value is being returned
 
 			if (currentToken.getType() != TokenType.SEMICOLON) {
-				parseExpr(); // TODO put the exprValue in the retExpr
+				ex = parseExpr();
 			}
 			accept(TokenType.SEMICOLON);
 
@@ -298,10 +298,9 @@ public class Parser {
 				// 2 id's indicates
 				// variable declaration of id with type id
 				String varName = currentToken.getLexeme(); // name of var being declared
-				ex = null; // expr whose value var id is initialized with
 
 				advance();
-				parseStatementAssign(); // TODO put actual exprValue in varValue
+				ex = parseStatementAssign(); // expr whose value var id is initialized with
 
 				statemt = new VarDeclStmt(new VarDecl(new ClassType(startingId), varName), ex);
 				break;
@@ -322,9 +321,7 @@ public class Parser {
 				// id =
 				// then the id is a ref
 				ref = new IdRef(startingId);
-				ex = null; // expr value assigned to var id
-
-				parseStatementAssign(); // TODO put actual exprValue in assignVal
+				ex = parseStatementAssign(); // expr value assigned to var id
 
 				statemt = new AssignStmt(ref, ex);
 				break;
@@ -350,22 +347,21 @@ public class Parser {
 				if (currentToken.getType() == TokenType.RSQUARE) { // array var decl
 					advance();
 
-					ex = null; // val array is initialized with
 					varName = currentToken.getLexeme(); // name of the array
 					accept(TokenType.ID);
 
-					parseStatementAssign(); // TODO put actual exprValue in arrayVal
+					ex = parseStatementAssign(); // val array is initialized with
 
 					statemt = new VarDeclStmt(new VarDecl(new ArrayType(new ClassType(startingId)), varName), ex);
-				} else { // indexed assign
+				}
+				else { // indexed assign
 					ref = new IdRef(startingId);
-					Expression indexExpr = null;
-					ex = null; // value assigned to ref[indexExpr]
-
-					parseExpr(); // TODO put actual exprValue in indexExpr
+					
+					Expression indexExpr = parseExpr();
+					
 					accept(TokenType.RSQUARE);
-					parseStatementAssign(); // TODO put actual exprValue in assignValue
-
+					ex = parseStatementAssign(); // value assigned to ref[indexExpr]
+					
 					statemt = new IxAssignStmt(ref, indexExpr, ex);
 				}
 				break;
@@ -382,10 +378,9 @@ public class Parser {
 		case INT:
 			TypeDenoter type = parseType();
 			String varName = currentToken.getLexeme();
-			ex = null; // value that var is initialized to
 
 			accept(TokenType.ID);
-			parseStatementAssign(); // TODO put actual exprValue in varValue
+			ex = parseStatementAssign();
 
 			statemt = new VarDeclStmt(new VarDecl(type, varName), ex);
 			break;
@@ -403,20 +398,17 @@ public class Parser {
 		case ASSIGNMENT:
 			advance();
 
-			Expression ex = null;
-			parseExpr(); // TODO put exprvalue into ex
+			Expression ex = parseExpr();
 
 			statemt = new AssignStmt(ref, ex);
 			break;
 		case LSQUARE:
 			advance();
 
-			ex = null;
-			Expression indexExpr = null;
-			parseExpr(); // TODO indexExpr
+			Expression indexExpr = parseExpr();
 			accept(TokenType.RSQUARE);
 			accept(TokenType.ASSIGNMENT);
-			parseExpr(); // TODO assigned to ref[index]
+			ex = parseExpr(); // assigned to ref[index]
 
 			statemt = new IxAssignStmt(ref, indexExpr, ex);
 			break;
@@ -425,7 +417,7 @@ public class Parser {
 
 			ExprList argList = null;
 			if (currentToken.getType() != TokenType.RPAREN) {
-				parseArgList(); // TODO get the actual list of exprs
+				argList = parseArgList();
 			}
 
 			accept(TokenType.RPAREN);
@@ -440,12 +432,12 @@ public class Parser {
 		return statemt;
 	}
 
-	// TODO return expr associated with assignment
-	private void parseStatementAssign() {
-		Expression expr;
+	private Expression parseStatementAssign() {
 		accept(TokenType.ASSIGNMENT);
-		parseExpr();
+		Expression expr = parseExpr();
 		accept(TokenType.SEMICOLON);
+		
+		return expr;
 	}
 
 	Expression parseExpr() {
