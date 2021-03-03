@@ -99,6 +99,8 @@ public class Parser {
 
 		ParameterDeclList params = null;
 		StatementList body = null;
+		
+		params = new ParameterDeclList();
 		if (currentToken.getType() != TokenType.RPAREN) {
 			params = parseParamList();
 		}

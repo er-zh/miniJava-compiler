@@ -72,7 +72,77 @@ class ASTConstructionTests {
 	}
 	
 	@Test
+	void testMethodDec1() {
+		String file = "../tests/pa2_selfmade/pass_method_decs1.java";
+		String expected = "======= AST Display =========================\n"
+				+ "Package\n"
+				+ "  ClassDeclList [1]\n"
+				+ "  . ClassDecl\n"
+				+ "  .   \"methods\" classname\n"
+				+ "  .   FieldDeclList [0]\n"
+				+ "  .   MethodDeclList [1]\n"
+				+ "  .   . (public static) MethodDecl\n"
+				+ "  .   .   VOID BaseType\n"
+				+ "  .   .   \"main\" methodname\n"
+				+ "  .   .   ParameterDeclList [1]\n"
+				+ "  .   .   . ParameterDecl\n"
+				+ "  .   .   .   ArrayType\n"
+				+ "  .   .   .     ClassType\n"
+				+ "  .   .   .       \"String\" Identifier\n"
+				+ "  .   .   .   \"args\"parametername \n"
+				+ "  .   .   StmtList [0]\n"
+				+ "=============================================\n";
+		
+		Parser p = new Parser(new Scanner(str2filestream(file)));
+		
+		AST tree = p.parse();
+		
+		assertTrue(tree != null);
+		
+		assertTrue(new ASTtoString().stringifyTree(tree).equals(expected));
+	}
+	
+	@Test
+	void testMethodDec2() {
+		String file = "../tests/pa2_selfmade/pass_method_decs2.java";
+		String expected = "======= AST Display =========================\n"
+				+ "Package\n"
+				+ "  ClassDeclList [1]\n"
+				+ "  . ClassDecl\n"
+				+ "  .   \"methods\" classname\n"
+				+ "  .   FieldDeclList [0]\n"
+				+ "  .   MethodDeclList [3]\n"
+				+ "  .   . (private) MethodDecl\n"
+				+ "  .   .   VOID BaseType\n"
+				+ "  .   .   \"hidden\" methodname\n"
+				+ "  .   .   ParameterDeclList [0]\n"
+				+ "  .   .   StmtList [0]\n"
+				+ "  .   . (public) MethodDecl\n"
+				+ "  .   .   VOID BaseType\n"
+				+ "  .   .   \"visible\" methodname\n"
+				+ "  .   .   ParameterDeclList [0]\n"
+				+ "  .   .   StmtList [0]\n"
+				+ "  .   . (public) MethodDecl\n"
+				+ "  .   .   VOID BaseType\n"
+				+ "  .   .   \"notPrivate\" methodname\n"
+				+ "  .   .   ParameterDeclList [0]\n"
+				+ "  .   .   StmtList [0]\n"
+				+ "=============================================\n";
+		
+		Parser p = new Parser(new Scanner(str2filestream(file)));
+		
+		AST tree = p.parse();
+		
+		assertTrue(tree != null);
+		
+		assertTrue(new ASTtoString().stringifyTree(tree).equals(expected));
+	}
+	
+	
+	//test parsing different kinds of statements
+	@Test
 	void testWhile() {
+		String file = "../tests/pa2_selfmade/pass_while.java";
 		String expected = "======= AST Display =========================\n"
 				+ "Package\n"
 				+ "  ClassDeclList [1]\n"
@@ -104,7 +174,7 @@ class ASTConstructionTests {
 				+ "  .   .   .           \"1\" IntLiteral\n"
 				+ "=============================================\n";
 		
-		Parser p = new Parser(new Scanner(str2filestream("../tests/pa2_selfmade/pass_while.java")));
+		Parser p = new Parser(new Scanner(str2filestream(file)));
 		
 		AST tree = p.parse();
 		
@@ -115,6 +185,7 @@ class ASTConstructionTests {
 	
 	@Test
 	void testReturn1() {
+		String file = "../tests/pa2_selfmade/pass_return.java";
 		String expected = "======= AST Display =========================\n"
 				+ "Package\n"
 				+ "  ClassDeclList [1]\n"
@@ -137,7 +208,7 @@ class ASTConstructionTests {
 				+ "  .   .   .     \"16\" IntLiteral\n"
 				+ "=============================================\n";
 		
-		Parser p = new Parser(new Scanner(str2filestream("../tests/pa2_selfmade/pass_return.java")));
+		Parser p = new Parser(new Scanner(str2filestream(file)));
 		
 		AST tree = p.parse();
 		
@@ -148,6 +219,7 @@ class ASTConstructionTests {
 	
 	@Test
 	void testReturn2() {
+		String file = "../tests/pa2_selfmade/pass_return_nothing.java";
 		String expected = "======= AST Display =========================\n"
 				+ "Package\n"
 				+ "  ClassDeclList [1]\n"
@@ -168,7 +240,7 @@ class ASTConstructionTests {
 				+ "  .   .   . ReturnStmt\n"
 				+ "=============================================\n";
 		
-		Parser p = new Parser(new Scanner(str2filestream("../tests/pa2_selfmade/pass_return_nothing.java")));
+		Parser p = new Parser(new Scanner(str2filestream(file)));
 		
 		AST tree = p.parse();
 		
@@ -179,6 +251,7 @@ class ASTConstructionTests {
 	
 	@Test
 	void testIf1() {
+		String file = "../tests/pa2_selfmade/pass_if1.java";
 		String expected = "======= AST Display =========================\n"
 				+ "Package\n"
 				+ "  ClassDeclList [1]\n"
@@ -211,7 +284,7 @@ class ASTConstructionTests {
 				+ "  .   .   .       \"3\" IntLiteral\n"
 				+ "=============================================\n";
 		
-		Parser p = new Parser(new Scanner(str2filestream("../tests/pa2_selfmade/pass_if1.java")));
+		Parser p = new Parser(new Scanner(str2filestream(file)));
 		
 		AST tree = p.parse();
 		
@@ -222,6 +295,7 @@ class ASTConstructionTests {
 	
 	@Test
 	void testIf2() {
+		String file = "../tests/pa2_selfmade/pass_if2.java";
 		String expected = "======= AST Display =========================\n"
 				+ "Package\n"
 				+ "  ClassDeclList [1]\n"
@@ -262,7 +336,7 @@ class ASTConstructionTests {
 				+ "  .   .   .         \"5\" IntLiteral\n"
 				+ "=============================================\n";
 		
-		Parser p = new Parser(new Scanner(str2filestream("../tests/pa2_selfmade/pass_if2.java")));
+		Parser p = new Parser(new Scanner(str2filestream(file)));
 		
 		AST tree = p.parse();
 		
@@ -273,6 +347,7 @@ class ASTConstructionTests {
 	
 	@Test
 	void testIf3() {
+		String file = "../tests/pa2_selfmade/pass_if3.java";
 		String expected = "======= AST Display =========================\n"
 				+ "Package\n"
 				+ "  ClassDeclList [1]\n"
@@ -302,13 +377,11 @@ class ASTConstructionTests {
 				+ "  .   .   .     .     \"7\" IntLiteral\n"
 				+ "=============================================\n";
 		
-		Parser p = new Parser(new Scanner(str2filestream("../tests/pa2_selfmade/pass_if_noelse.java")));
+		Parser p = new Parser(new Scanner(str2filestream(file)));
 		
 		AST tree = p.parse();
 		
 		assertTrue(tree != null);
-		
-		new ASTDisplay().showTree(tree);
 		
 		assertTrue(new ASTtoString().stringifyTree(tree).equals(expected));
 	}
