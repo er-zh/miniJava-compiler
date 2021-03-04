@@ -14,15 +14,13 @@ public class Parser {
 	}
 
 	public Package parse() {
-		ClassDeclList classes = null;
-
 		// load in the first token
 		do {
 			currentToken = scanner.getNextToken();
 		} while (currentToken.getType() == TokenType.COMMENT);
 
 		try {
-			classes = parseProgram();
+			ClassDeclList classes = parseProgram();
 
 			return new Package(classes);
 		} catch (SyntaxError e) {
@@ -97,10 +95,9 @@ public class Parser {
 	MethodDecl parseMethodDecl(MemberDecl md) {
 		accept(TokenType.LPAREN);
 
-		ParameterDeclList params = null;
-		StatementList body = null;
+		ParameterDeclList params = new ParameterDeclList();
+		StatementList body = new StatementList();
 		
-		params = new ParameterDeclList();
 		if (currentToken.getType() != TokenType.RPAREN) {
 			params = parseParamList();
 		}
@@ -108,7 +105,6 @@ public class Parser {
 		accept(TokenType.RPAREN);
 		accept(TokenType.LBRACE);
 
-		body = new StatementList();
 		while (currentToken.getType() != TokenType.RBRACE) {
 			body.add(parseStatement());
 		}
@@ -331,7 +327,7 @@ public class Parser {
 				advance();
 
 				ref = new IdRef(startingId);
-				ExprList methodArgs = null;
+				ExprList methodArgs = new ExprList();
 				if (currentToken.getType() != TokenType.RPAREN) {
 					methodArgs = parseArgList();
 				}
@@ -417,7 +413,7 @@ public class Parser {
 		case LPAREN:
 			advance();
 
-			ExprList argList = null;
+			ExprList argList = new ExprList();
 			if (currentToken.getType() != TokenType.RPAREN) {
 				argList = parseArgList();
 			}
@@ -536,6 +532,7 @@ public class Parser {
 
 	Expression parseVal() {
 		Expression expr = null;
+		
 		switch (currentToken.getType()) {
 		case ID:
 		case THIS:
@@ -550,7 +547,7 @@ public class Parser {
 			} else if (currentToken.getType() == TokenType.LPAREN) {
 				advance();
 
-				ExprList argsList = null; // TODO make sure empty inputs consistent
+				ExprList argsList = new ExprList();
 				if (currentToken.getType() != TokenType.RPAREN) {
 					argsList = parseArgList();
 				}
