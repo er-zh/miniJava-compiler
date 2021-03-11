@@ -1,31 +1,19 @@
 package miniJava.SyntacticAnalyzer;
 
-public class SyntaxError extends Error{
+import miniJava.CompilerError;
+
+public class SyntaxError extends CompilerError{
 	private static final long serialVersionUID = 1L;
 	
-	private TokenType expected;
-	private TokenType recieved;
-	private String errorMsg;
-	
 	public SyntaxError(TokenType expect, TokenType found) {
-		expected = expect;
-		recieved = found;
-		
-		errorMsg = "expecting '" + expected + "' but found '" + recieved + "'";
+		super("expecting '" + expect + "' but found '" + found + "'");
 	}
 	
 	public SyntaxError(String error) {
-		errorMsg = error;
+		super(error);
 	}
 	
-	public SyntaxError(TokenType expect, TokenType found, String error) {
-		expected = expect;
-		recieved = found;
-		
-		errorMsg = error;
-	}
-	
-	public void printErrorMsg() {
-		System.out.println(errorMsg);
+	public String toString() {
+		return "Syntax Error:: " + errorMessage;
 	}
 }

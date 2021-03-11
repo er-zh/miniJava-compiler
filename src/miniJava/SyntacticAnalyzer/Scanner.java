@@ -6,7 +6,6 @@ import java.util.regex.Pattern;
 import java.util.HashMap;
 
 public class Scanner {
-	// TODO find the correct end of stream markers
 	private final static char eolUnix = '\n';
 	private final static char eolWindows = '\r';
 	
@@ -45,8 +44,6 @@ public class Scanner {
 		// init another hashmap for punctuation
 		puncDict.put('+', TokenType.BINOP);
 		puncDict.put('*', TokenType.BINOP);
-		// TODO figure out how to parse the token type
-		// for now parse as unop -> add negative if needed
 		puncDict.put('-', TokenType.UNOP);
 		puncDict.put('{', TokenType.LBRACE);
 		puncDict.put('}', TokenType.RBRACE);
@@ -155,7 +152,7 @@ public class Scanner {
 				advanceScanner(lexeme);
 				return TokenType.BINOP;
 			}
-			// TODO implement proper error reporting
+			// TODO implement proper error reporting?
 			// expected an and (&&) operator but got something else
 			return TokenType.ERROR;
 		case '|':

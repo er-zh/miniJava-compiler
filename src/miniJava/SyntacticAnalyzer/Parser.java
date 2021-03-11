@@ -1,5 +1,6 @@
 package miniJava.SyntacticAnalyzer;
 
+import miniJava.ErrorReporter;
 import miniJava.AbstractSyntaxTrees.*;
 import miniJava.AbstractSyntaxTrees.Package;
 
@@ -8,9 +9,18 @@ public class Parser {
 
 	private Scanner scanner;
 	private Token currentToken;
+	
+	private ErrorReporter err;
 
+	public Parser(Scanner scanner, ErrorReporter e) {
+		this.scanner = scanner;
+		this.err = e;
+	}
+	
+	/*should only be used for testing*/
 	public Parser(Scanner scanner) {
 		this.scanner = scanner;
+		this.err = null;
 	}
 
 	public Package parse() {
@@ -24,7 +34,7 @@ public class Parser {
 
 			return new Package(classes);
 		} catch (SyntaxError e) {
-			e.printErrorMsg();
+			err.reportError(e);
 
 			return null;
 		}
@@ -149,8 +159,8 @@ public class Parser {
 				type = new BaseType(TypeKind.INT);
 				advance();
 			} else {
-				throw new SyntaxError(
-						"invalid typing: expected non-void typing, " + "but got " + currentToken.getType());
+				throw new SyntaxError("invalid typing: expected non-void typing, " 
+						+ "but got " + currentToken.getType());
 			}
 
 			if (currentToken.getType() == TokenType.LSQUARE) {

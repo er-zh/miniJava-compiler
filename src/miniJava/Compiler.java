@@ -12,10 +12,11 @@ import miniJava.SyntacticAnalyzer.Scanner;
 //import miniJava.SyntacticAnalyzer.TokenType;
 
 public class Compiler {
-	private static int rc = 0;
 	
 	public static void main(String[] args) {
 		InputStream inputStream = null;
+		int rc = 0;
+		
 		try {
 			inputStream = new FileInputStream(args[0]);
 		} catch (FileNotFoundException e) {
@@ -24,21 +25,22 @@ public class Compiler {
 			System.exit(rc);
 		}
 		
+		ErrorReporter e = new ErrorReporter();
 		Scanner s = new Scanner(inputStream);
-		Parser p = new Parser(s);
+		Parser p = new Parser(s, e);
 		
 		AST parseTree = p.parse();
 		
-		if(parseTree == null) {
+		if(e.hasErrors()) {
+			System.out.println(e.getErrorReport());
 			rc=4;
-			System.exit(rc);
 		}
 		else {
 			ASTDisplay td = new ASTDisplay();
 			td.showTree(parseTree);
-			
-			System.exit(rc);
 		}
+		
+		System.exit(rc);
 	}
 
 }

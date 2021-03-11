@@ -950,7 +950,6 @@ class ASTConstructionTests {
 	}
 	
 	@Test
-	@Disabled
 	void testFileInputStream() {
 		String[] args = new String[2];
 		args[0] = "../tests/pa1_selfmade/valid_nums.java";
@@ -969,8 +968,12 @@ class ASTConstructionTests {
 
 			Scanner s = new Scanner(inputStream);
 			Parser p = new Parser(s);
-
-			assertTrue(p.parse() != null);
+			AST parseTree = p.parse();
+			
+			assertTrue(parseTree != null);
+			
+			new ASTDisplay().showTree(parseTree);
+			
 		}
 	}
 	
