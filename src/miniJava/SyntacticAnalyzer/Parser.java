@@ -599,7 +599,7 @@ public class Parser {
 					Expression sizeExpr = parseExpr();
 					accept(TokenType.RSQUARE);
 
-					expr = new NewArrayExpr(new ArrayType(newclass), sizeExpr);
+					expr = new NewArrayExpr(newclass, sizeExpr);
 				}
 			} else if (currentToken.getType() == TokenType.INT) {
 				advance();
@@ -607,7 +607,7 @@ public class Parser {
 				Expression sizeExpr = parseExpr();
 				accept(TokenType.RSQUARE);
 
-				expr = new NewArrayExpr(new ArrayType(new BaseType(TypeKind.INT)), sizeExpr);
+				expr = new NewArrayExpr(new BaseType(TypeKind.INT), sizeExpr);
 			} else {
 				throw new SyntaxError("invalid use of new in expression");
 			}

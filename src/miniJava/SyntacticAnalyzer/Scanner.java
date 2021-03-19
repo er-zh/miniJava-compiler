@@ -20,9 +20,12 @@ public class Scanner {
 	private char currentChar;
 	private boolean eot;
 	
+	private int lineNumber;
+	
 	public Scanner(InputStream input) {
 		scanInput = input;
 		eot = false;
+		lineNumber = 1;
 		
 		// initialize the keyword hashmap with the values of keywords
 		keywordDict.put("new", TokenType.NEW);
@@ -73,6 +76,10 @@ public class Scanner {
 		TokenType type = scan(currentLexeme);
 
 		return new Token(type, currentLexeme.toString());
+	}
+	
+	public int getLineNum() {
+		return lineNumber;
 	}
 	
 	private TokenType scan(StringBuilder lexeme) {
@@ -175,7 +182,7 @@ public class Scanner {
 		}
 	}
 	
-	private TokenType consumeComment(boolean multiline) {		
+	private TokenType consumeComment(boolean multiline) {	
 		if(multiline) {
 			boolean loop = true;
 			boolean star = false;
@@ -228,6 +235,10 @@ public class Scanner {
 			}
 			else {
 				currentChar = (char) c;
+				
+				if(c == eolWindows || c == eolUnix) {
+					lineNumber++;
+				}
 			}
 		}
 		catch(IOException ioe) {

@@ -950,6 +950,26 @@ class ASTConstructionTests {
 	}
 	
 	@Test
+	void testCheckpoint() {
+		String floc = "../tests/pa2_tests/pass292.java";
+		
+		FileInputStream fs = null;
+		try {
+			fs = new FileInputStream(floc);
+		}
+		catch(FileNotFoundException e) {
+			fail("File not found");
+		}
+		
+		Parser p = new Parser(new Scanner(fs));
+		
+		AST ptree = p.parse();
+		
+		new ASTDisplay().showTree(ptree);
+	}
+	
+	@Test
+	@Disabled
 	void testFileInputStream() {
 		String[] args = new String[2];
 		args[0] = "../tests/pa1_selfmade/valid_nums.java";
