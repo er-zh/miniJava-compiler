@@ -8,7 +8,6 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.Disabled;
 
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.Scanner;
@@ -79,7 +78,6 @@ class ParserTests {
 	}
 
 	@Test
-	@Disabled
 	void testMethodDecs() {
 		String input = "class classic {\n"
 				+ "public static void main(String[] args){}}";
@@ -112,7 +110,6 @@ class ParserTests {
 	}
 	
 	@Test
-	@Disabled
 	void testRefs() {
 		String input = "class classic {\n"
 				+ "public static void main(String[] args){\n"
@@ -143,7 +140,6 @@ class ParserTests {
 	}
 	
 	@Test
-	@Disabled
 	void testNestedIfs() {
 		String input = "class ifNest {"
 				+ "    public static void main(String[] args) {"
@@ -160,7 +156,6 @@ class ParserTests {
 	}
 	
 	@Test
-	@Disabled
 	void testDegenOps() {
 		String input = "class grossOps {\n"
 				+ "public static void main(String[] args){"
@@ -176,7 +171,6 @@ class ParserTests {
 	// following tests parsers ability to correctly parse expressions and statements
 	
 	@Test
-	@Disabled
 	void basicProgram() {
 		String input = "class basicStatements {\n"
 				+ "void main(){\n"
@@ -188,7 +182,6 @@ class ParserTests {
 	}
 	
 	@Test
-	@Disabled
 	void moreControlFlowStatements() {
 		String input = "class basicStatements {\n"
 				+ "public static void main(String[] args){\n"
@@ -204,7 +197,6 @@ class ParserTests {
 	}
 	
 	@Test
-	@Disabled
 	void testTypeAssignStatements() {
 		String input = "class statements {\n"
 				+ "public static void main(String[] args){\n"
@@ -218,7 +210,6 @@ class ParserTests {
 	}
 	
 	@Test
-	@Disabled
 	void testRefdStatements() {
 		String input = "class statements {\n"
 				+ "public static void main(String[] args){\n"
@@ -227,13 +218,14 @@ class ParserTests {
 				+ "method();"
 				+ "method(overload);"
 				+ "arr[0] = 10;"
+				+ "a = null;"
+				+ "b = method(null);"
 				+ "}}";
 		Parser p = new Parser(new Scanner(str2Stream(input)));
 		assertTrue(p.parse() != null);
 	}
 	
 	@Test
-	@Disabled
 	void testMultiClassProgram() {
 		String input = "class NumberDemo {\r\n"
 				+ "	public static void main(String [] a) {\r\n"
@@ -287,7 +279,6 @@ class ParserTests {
 	}
 	
 	@Test
-	@Disabled
 	void testFailurePrograms() {
 		String input = "class Failure {\r\n"
 				+ "	public static void main(String [] a) {\n"

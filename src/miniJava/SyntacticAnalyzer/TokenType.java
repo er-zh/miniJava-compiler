@@ -29,9 +29,9 @@ public enum TokenType {
 		// scope related
 		STATIC,
 		THIS,
-		// primitive types
+		// primitive types / literals
 		INT,
-		BOOLEAN, T, F,
+		BOOLEAN, T, F, NULL,
 		VOID,
 	// sets of terminals, arbitrarily identified
 	ID, // name

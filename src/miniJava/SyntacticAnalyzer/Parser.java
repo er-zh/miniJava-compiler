@@ -34,7 +34,7 @@ public class Parser {
 
 			return new Package(classes);
 		} catch (SyntaxError e) {
-			err.reportError(e);
+			if (err != null) err.reportError(e);
 
 			return null;
 		}
@@ -575,6 +575,10 @@ public class Parser {
 			break;
 		case NUM_LITERAL:
 			expr = new LiteralExpr(new IntLiteral(currentToken));
+			advance();
+			break;
+		case NULL:
+			expr = new LiteralExpr(new NullLiteral(currentToken));
 			advance();
 			break;
 		case T:

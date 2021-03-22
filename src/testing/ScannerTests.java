@@ -36,6 +36,7 @@ class ScannerTests {
 		typeIndex.put("return", TokenType.RETURN);
 		typeIndex.put("class", TokenType.CLASS);
 		typeIndex.put("new", TokenType.NEW);
+		typeIndex.put("null", TokenType.NULL);
 			
 		typeIndex.put("+", TokenType.BINOP);
 		typeIndex.put("*", TokenType.BINOP);
@@ -151,6 +152,48 @@ class ScannerTests {
 			type = (type != null) ? type : TokenType.ID;
 			assertEquals(t.getType(), type);
 		}
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.EOT);
+	}
+	
+	@Test
+	void testLiterals() {
+		String input = "this null lull true tru 874546657 false 232432";
+		
+		s = new Scanner(str2Stream(input));
+		
+		Token t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.THIS);
+		assertEquals(t.getLexeme(), "this");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.NULL);
+		assertEquals(t.getLexeme(), "null");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.ID);
+		assertEquals(t.getLexeme(), "lull");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.T);
+		assertEquals(t.getLexeme(), "true");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.ID);
+		assertEquals(t.getLexeme(), "tru");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.NUM_LITERAL);
+		assertEquals(t.getLexeme(), "874546657");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.F);
+		assertEquals(t.getLexeme(), "false");
+		
+		t = s.getNextToken();
+		assertEquals(t.getType(), TokenType.NUM_LITERAL);
+		assertEquals(t.getLexeme(), "232432");
 		
 		t = s.getNextToken();
 		assertEquals(t.getType(), TokenType.EOT);

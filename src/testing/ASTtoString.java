@@ -25,6 +25,7 @@ import miniJava.AbstractSyntaxTrees.LiteralExpr;
 import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
 import miniJava.AbstractSyntaxTrees.NewObjectExpr;
+import miniJava.AbstractSyntaxTrees.NullLiteral;
 import miniJava.AbstractSyntaxTrees.Operator;
 import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
@@ -407,6 +408,11 @@ public class ASTtoString implements Visitor<String,Object> {
     
     public Object visitBooleanLiteral(BooleanLiteral bool, String arg){
         show(arg, quote(bool.spelling) + " " + bool.toString());
+        return null;
+    }
+    
+    public Object visitNullLiteral(NullLiteral nlit, String arg){
+        show(arg, quote(nlit.spelling) + " " + nlit.toString());
         return null;
     }
 }

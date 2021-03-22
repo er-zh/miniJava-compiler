@@ -950,6 +950,46 @@ class ASTConstructionTests {
 	}
 	
 	@Test
+	void testNullLiteral() {
+		String file = "../tests/pa2_selfmade/pass_null_literal.java";
+		String expected = "======= AST Display =========================\n"
+				+ "Package\n"
+				+ "  ClassDeclList [1]\n"
+				+ "  . ClassDecl\n"
+				+ "  .   \"Object\" classname\n"
+				+ "  .   FieldDeclList [0]\n"
+				+ "  .   MethodDeclList [1]\n"
+				+ "  .   . (public) MethodDecl\n"
+				+ "  .   .   VOID BaseType\n"
+				+ "  .   .   \"main\" methodname\n"
+				+ "  .   .   ParameterDeclList [0]\n"
+				+ "  .   .   StmtList [2]\n"
+				+ "  .   .   . AssignStmt\n"
+				+ "  .   .   .   IdRef\n"
+				+ "  .   .   .     \"a\" Identifier\n"
+				+ "  .   .   .   LiteralExpr\n"
+				+ "  .   .   .     \"null\" NullLiteral\n"
+				+ "  .   .   . AssignStmt\n"
+				+ "  .   .   .   IdRef\n"
+				+ "  .   .   .     \"b\" Identifier\n"
+				+ "  .   .   .   CallExpr\n"
+				+ "  .   .   .     IdRef\n"
+				+ "  .   .   .       \"m\" Identifier\n"
+				+ "  .   .   .     ExprList + [1]\n"
+				+ "  .   .   .     . LiteralExpr\n"
+				+ "  .   .   .     .   \"null\" NullLiteral\n"
+				+ "=============================================\n";
+		Parser p = new Parser(new Scanner(str2filestream(file)));
+		
+		AST tree = p.parse();
+		
+		assertTrue(tree != null);
+		
+		assertTrue(new ASTtoString().stringifyTree(tree).equals(expected));
+		
+	}
+	
+	@Test
 	void testCheckpoint() {
 		String floc = "../tests/pa2_tests/pass292.java";
 		
