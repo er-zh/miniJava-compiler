@@ -5,10 +5,12 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-public abstract class LocalDecl extends Declaration {
+import miniJava.SourcePosition;
 
-	public LocalDecl(String name, TypeDenoter t) {
-		super(name, t);
+public abstract class LocalDecl extends Declaration {
+	
+	public LocalDecl(String name, TypeDenoter t, SourcePosition posn){
+		super(name,t,posn);
 	}
 
 }

@@ -5,16 +5,18 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-public class RefExpr extends Expression {
-	public Reference ref;
+import miniJava.SourcePosition;
 
-	public RefExpr(Reference r) {
-		super();
-		ref = r;
-	}
+public class RefExpr extends Expression
+{
+    public RefExpr(Reference r, SourcePosition posn){
+        super(posn);
+        ref = r;
+    }
+        
+    public <A,R> R visit(Visitor<A,R> v, A o) {
+        return v.visitRefExpr(this, o);
+    }
 
-	public <A, R> R visit(Visitor<A, R> v, A o) {
-		return v.visitRefExpr(this, o);
-	}
-
+    public Reference ref;
 }

@@ -5,15 +5,17 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-public class ThisRef extends BaseRef {
+import miniJava.SourcePosition;
 
-	public ThisRef() {
-		super();
+public class ThisRef extends BaseRef {
+	
+	public ThisRef(SourcePosition posn) {
+		super(posn);
 	}
 
 	@Override
 	public <A, R> R visit(Visitor<A, R> v, A o) {
 		return v.visitThisRef(this, o);
 	}
-
+	
 }

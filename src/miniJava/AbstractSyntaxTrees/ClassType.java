@@ -5,16 +5,18 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-public class ClassType extends TypeDenoter {
-	public Identifier className;
+import miniJava.SourcePosition;
 
-	public ClassType(Identifier cn) {
-		super(TypeKind.CLASS);
-		className = cn;
-	}
+public class ClassType extends TypeDenoter
+{
+    public ClassType(Identifier cn, SourcePosition posn){
+        super(TypeKind.CLASS, posn);
+        className = cn;
+    }
+            
+    public <A,R> R visit(Visitor<A,R> v, A o) {
+        return v.visitClassType(this, o);
+    }
 
-	public <A, R> R visit(Visitor<A, R> v, A o) {
-		return v.visitClassType(this, o);
-	}
-
+    public Identifier className;
 }

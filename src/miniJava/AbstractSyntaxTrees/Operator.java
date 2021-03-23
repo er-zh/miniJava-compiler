@@ -5,12 +5,13 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.SourcePosition;
 import miniJava.SyntacticAnalyzer.Token;
 
 public class Operator extends Terminal {
 
-  public Operator (Token t) {
-    super (t);
+  public Operator (Token t, SourcePosition posn) {
+    super (t, posn);
   }
 
   public <A,R> R visit(Visitor<A,R> v, A o) {

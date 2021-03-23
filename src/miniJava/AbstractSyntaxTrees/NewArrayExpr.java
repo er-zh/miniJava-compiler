@@ -5,18 +5,20 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-public class NewArrayExpr extends NewExpr {
-	public TypeDenoter eltType;
-	public Expression sizeExpr;
+import miniJava.SourcePosition;
 
-	public NewArrayExpr(TypeDenoter et, Expression e) {
-		super();
-		eltType = et;
-		sizeExpr = e;
-	}
+public class NewArrayExpr extends NewExpr
+{
+    public NewArrayExpr(TypeDenoter et, Expression e, SourcePosition posn){
+        super(posn);
+        eltType = et;
+        sizeExpr = e;
+    }
+    
+    public <A,R> R visit(Visitor<A,R> v, A o) {
+        return v.visitNewArrayExpr(this, o);
+    }
 
-	public <A, R> R visit(Visitor<A, R> v, A o) {
-		return v.visitNewArrayExpr(this, o);
-	}
-
+    public TypeDenoter eltType;
+    public Expression sizeExpr;
 }

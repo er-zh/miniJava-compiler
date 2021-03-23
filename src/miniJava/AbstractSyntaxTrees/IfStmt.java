@@ -5,21 +5,19 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.SourcePosition;
+
 public class IfStmt extends Statement
 {
-	public Expression cond;
-    public Statement thenStmt;
-    public Statement elseStmt;
-    
-    public IfStmt(Expression b, Statement t, Statement e){
-        super();
+    public IfStmt(Expression b, Statement t, Statement e, SourcePosition posn){
+        super(posn);
         cond = b;
         thenStmt = t;
         elseStmt = e;
     }
     
-    public IfStmt(Expression b, Statement t){
-        super();
+    public IfStmt(Expression b, Statement t, SourcePosition posn){
+        super(posn);
         cond = b;
         thenStmt = t;
         elseStmt = null;
@@ -29,5 +27,7 @@ public class IfStmt extends Statement
         return v.visitIfStmt(this, o);
     }
     
-    
+    public Expression cond;
+    public Statement thenStmt;
+    public Statement elseStmt;
 }

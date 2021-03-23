@@ -5,12 +5,14 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.SourcePosition;
+
 public class AssignStmt extends Statement {
 	public Reference ref;
 	public Expression val;
 
-	public AssignStmt(Reference r, Expression e) {
-		super();
+	public AssignStmt(Reference r, Expression e, SourcePosition posn) {
+		super(posn);
 		ref = r;
 		val = e;
 	}

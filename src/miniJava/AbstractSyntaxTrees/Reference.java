@@ -5,10 +5,12 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.SourcePosition;
+
 public abstract class Reference extends AST
 {
-	public Reference(){
-		super();
+	public Reference(SourcePosition posn){
+		super(posn);
 	}
 
 }

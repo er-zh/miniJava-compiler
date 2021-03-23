@@ -5,16 +5,18 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-public class IdRef extends BaseRef {
-	public Identifier id;
+import miniJava.SourcePosition;
 
-	public IdRef(Identifier id) {
-		super();
+public class IdRef extends BaseRef {
+	
+	public IdRef(Identifier id, SourcePosition posn){
+		super(posn);
 		this.id = id;
 	}
-
-	public <A, R> R visit(Visitor<A, R> v, A o) {
+		
+	public <A,R> R visit(Visitor<A,R> v, A o) {
 		return v.visitIdRef(this, o);
 	}
 
+	public Identifier id;
 }

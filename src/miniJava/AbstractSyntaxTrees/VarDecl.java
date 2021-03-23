@@ -5,10 +5,12 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.SourcePosition;
+
 public class VarDecl extends LocalDecl {
 	
-	public VarDecl(TypeDenoter t, String name) {
-		super(name, t);
+	public VarDecl(TypeDenoter t, String name, SourcePosition posn) {
+		super(name, t, posn);
 	}
 	
 	public <A,R> R visit(Visitor<A,R> v, A o) {

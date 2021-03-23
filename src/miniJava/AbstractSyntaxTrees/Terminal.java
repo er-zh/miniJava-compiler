@@ -5,6 +5,7 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
+import miniJava.SourcePosition;
 import miniJava.SyntacticAnalyzer.Token;
 import miniJava.SyntacticAnalyzer.TokenType;
 
@@ -12,8 +13,8 @@ abstract public class Terminal extends AST {
 	public TokenType kind;
 	public String spelling;
 
-	public Terminal(Token t) {
-		super();
+	public Terminal(Token t, SourcePosition posn) {
+		super(posn);
 		spelling = t.getLexeme();
 		kind = t.getType();
 	}

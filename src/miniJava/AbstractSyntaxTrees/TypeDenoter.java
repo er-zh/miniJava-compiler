@@ -5,12 +5,17 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-abstract public class TypeDenoter extends AST {
-	public TypeKind typeKind;
+import miniJava.SourcePosition;
 
-	public TypeDenoter(TypeKind type) {
-		super();
-		typeKind = type;
-	}
-	
+abstract public class TypeDenoter extends AST {
+    
+    public TypeDenoter(TypeKind type, SourcePosition posn){
+        super(posn);
+        typeKind = type;
+    }
+    
+    public TypeKind typeKind;
+    
 }
+
+        

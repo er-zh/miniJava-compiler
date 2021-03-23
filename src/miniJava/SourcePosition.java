@@ -1,11 +1,11 @@
-package miniJava.SyntacticAnalyzer;
+package miniJava;
 
 public class SourcePosition {
 	private int start, end;
 	
 	public SourcePosition(int s) {
 		start = s;
-		end = s;
+		end = -1;
 	}
 
 	public SourcePosition(int s, int f) {

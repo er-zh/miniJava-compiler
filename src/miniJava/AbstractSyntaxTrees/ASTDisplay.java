@@ -18,7 +18,6 @@ package miniJava.AbstractSyntaxTrees;
  *   and a null Object is returned as the result.
  *   The display is produced by printing a line of output at each node visited.
  */
-
 public class ASTDisplay implements Visitor<String,Object> {
 	
 	public static boolean showPosition = false;
@@ -366,8 +365,8 @@ public class ASTDisplay implements Visitor<String,Object> {
         return null;
     }
     
-    public Object visitNullLiteral(NullLiteral nlit, String arg){
-        show(arg, quote(nlit.spelling) + " " + nlit.toString());
+    public Object visitNullLiteral(NullLiteral nul, String arg){
+        show(arg, quote(nul.spelling) + " " + nul.toString());
         return null;
     }
 }
