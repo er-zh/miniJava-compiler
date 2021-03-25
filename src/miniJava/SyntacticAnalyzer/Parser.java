@@ -12,6 +12,8 @@ public class Parser {
 	private Token currentToken;
 	
 	private ErrorReporter err;
+	
+	private SourcePosition currentpos;
 
 	public Parser(Scanner scanner, ErrorReporter e) {
 		this.scanner = scanner;
@@ -29,11 +31,13 @@ public class Parser {
 		do {
 			currentToken = scanner.getNextToken();
 		} while (currentToken.getType() == TokenType.COMMENT);
+		
+		currentpos = new SourcePosition(scanner.getLineNum());
 
 		try {
 			ClassDeclList classes = parseProgram();
 
-			return new Package(classes, new SourcePosition(scanner.getLineNum()));
+			return new Package(classes, currentpos);
 		} catch (SyntaxError e) {
 			if (err != null) err.reportError(e);
 
@@ -73,12 +77,12 @@ public class Parser {
 
 			if (currentToken.getType() == TokenType.VOID) {
 				accept(TokenType.VOID);
-				type = new BaseType(TypeKind.VOID, new SourcePosition(scanner.getLineNum()));
+				type = new BaseType(TypeKind.VOID, currentpos);
 
 				memberName = currentToken.getLexeme();
 				accept(TokenType.ID);
 
-				methods.add(parseMethodDecl(new FieldDecl(isPrivate, isStatic, type, memberName, new SourcePosition(scanner.getLineNum()))));
+				methods.add(parseMethodDecl(new FieldDecl(isPrivate, isStatic, type, memberName, currentpos)));
 			} else {
 				type = parseType();
 
@@ -87,16 +91,16 @@ public class Parser {
 
 				if (currentToken.getType() == TokenType.SEMICOLON) {
 					parseFieldDecl();
-					fields.add(new FieldDecl(isPrivate, isStatic, type, memberName, new SourcePosition(scanner.getLineNum())));
+					fields.add(new FieldDecl(isPrivate, isStatic, type, memberName, currentpos));
 				} else {
-					methods.add(parseMethodDecl(new FieldDecl(isPrivate, isStatic, type, memberName, new SourcePosition(scanner.getLineNum()))));
+					methods.add(parseMethodDecl(new FieldDecl(isPrivate, isStatic, type, memberName, currentpos)));
 				}
 			}
 		}
 
 		accept(TokenType.RBRACE);
 
-		return new ClassDecl(className, fields, methods, new SourcePosition(scanner.getLineNum()));
+		return new ClassDecl(className, fields, methods, currentpos);
 	}
 
 	void parseFieldDecl() {
@@ -122,11 +126,10 @@ public class Parser {
 
 		accept(TokenType.RBRACE);
 
-		return new MethodDecl(md, params, body, new SourcePosition(scanner.getLineNum()));
+		return new MethodDecl(md, params, body, currentpos);
 	}
 
 	// can be empty
-	// TODO resolve ambiguity around public / package private false state
 	boolean parseVis() {
 		if (currentToken.getType() == TokenType.PRIVATE) {
 			advance();
@@ -150,24 +153,24 @@ public class Parser {
 		TypeDenoter type = null;
 
 		if (currentToken.getType() == TokenType.BOOLEAN) {
-			type = new BaseType(TypeKind.BOOLEAN, new SourcePosition(scanner.getLineNum()));
+			type = new BaseType(TypeKind.BOOLEAN, currentpos);
 			advance();
 		} else {
 			if (currentToken.getType() == TokenType.ID) {
-				type = new ClassType(new Identifier(currentToken, new SourcePosition(scanner.getLineNum())), new SourcePosition(scanner.getLineNum()));
+				type = new ClassType(new Identifier(currentToken, currentpos), currentpos);
 				advance();
 			} else if (currentToken.getType() == TokenType.INT) {
-				type = new BaseType(TypeKind.INT, new SourcePosition(scanner.getLineNum()));
+				type = new BaseType(TypeKind.INT, currentpos);
 				advance();
 			} else {
 				throw new SyntaxError("invalid typing: expected non-void typing, " 
-						+ "but got " + currentToken.getType());
+						+ "but got " + currentToken.getType(), currentpos);
 			}
 
 			if (currentToken.getType() == TokenType.LSQUARE) {
 				advance();
 				accept(TokenType.RSQUARE);
-				type = new ArrayType(type, new SourcePosition(scanner.getLineNum()));
+				type = new ArrayType(type, currentpos);
 			}
 		}
 
@@ -182,7 +185,7 @@ public class Parser {
 		String paramName = currentToken.getLexeme();
 		accept(TokenType.ID);
 
-		paramList.add(new ParameterDecl(paramType, paramName, new SourcePosition(scanner.getLineNum())));
+		paramList.add(new ParameterDecl(paramType, paramName, currentpos));
 
 		while (currentToken.getType() == TokenType.COMMA) {
 			advance();
@@ -191,7 +194,7 @@ public class Parser {
 			paramName = currentToken.getLexeme();
 			accept(TokenType.ID);
 
-			paramList.add(new ParameterDecl(paramType, paramName, new SourcePosition(scanner.getLineNum())));
+			paramList.add(new ParameterDecl(paramType, paramName, currentpos));
 		}
 
 		return paramList;
@@ -218,16 +221,14 @@ public class Parser {
 		TokenType refType = currentToken.getType();
 
 		if (refType == TokenType.ID || refType == TokenType.THIS) {
-			ref = (refType == TokenType.THIS) ? new ThisRef(new SourcePosition(scanner.getLineNum())) 
-					: new IdRef(new Identifier(currentToken, new SourcePosition(scanner.getLineNum())),
-							new SourcePosition(scanner.getLineNum()));
+			ref = (refType == TokenType.THIS) ? new ThisRef(currentpos) 
+					: new IdRef(new Identifier(currentToken, currentpos), currentpos);
 			advance();
 
 			while (currentToken.getType() == TokenType.PERIOD) {
 				advance();
 
-				ref = new QualRef(ref, new Identifier(currentToken, new SourcePosition(scanner.getLineNum())),
-						new SourcePosition(scanner.getLineNum()));
+				ref = new QualRef(ref, new Identifier(currentToken, currentpos), currentpos);
 				accept(TokenType.ID);
 			}
 		} else {
@@ -250,7 +251,7 @@ public class Parser {
 			}
 			accept(TokenType.RBRACE);
 
-			statemt = new BlockStmt(statements, new SourcePosition(scanner.getLineNum()));
+			statemt = new BlockStmt(statements, currentpos);
 			break;
 		case IF:
 			advance();
@@ -270,7 +271,7 @@ public class Parser {
 				els = parseStatement();
 			}
 
-			statemt = new IfStmt(ex, then, els, new SourcePosition(scanner.getLineNum()));
+			statemt = new IfStmt(ex, then, els, currentpos);
 			break;
 		case WHILE:
 			advance();
@@ -283,7 +284,7 @@ public class Parser {
 
 			body = parseStatement();
 
-			statemt = new WhileStmt(ex, body, new SourcePosition(scanner.getLineNum()));
+			statemt = new WhileStmt(ex, body, currentpos);
 			break;
 		case RETURN:
 			advance();
@@ -295,13 +296,13 @@ public class Parser {
 			}
 			accept(TokenType.SEMICOLON);
 
-			statemt = new ReturnStmt(ex, new SourcePosition(scanner.getLineNum()));
+			statemt = new ReturnStmt(ex, currentpos);
 			break;
 		case ID:
 			// need to decide between statements of the form:
 			// id(type) id = expr; and ref (some kind of expr);
 			// which requires left factoring of possible id
-			Identifier startingId = new Identifier(currentToken, new SourcePosition(scanner.getLineNum()));
+			Identifier startingId = new Identifier(currentToken, currentpos);
 
 			advance();
 
@@ -314,16 +315,16 @@ public class Parser {
 				advance();
 				ex = parseStatementAssign(); // expr whose value var id is initialized with
 
-				statemt = new VarDeclStmt(new VarDecl(new ClassType(startingId, new SourcePosition(scanner.getLineNum())), varName, new SourcePosition(scanner.getLineNum())), 
-						ex, new SourcePosition(scanner.getLineNum()));
+				statemt = new VarDeclStmt(new VarDecl(new ClassType(startingId, currentpos), varName, currentpos), 
+						ex, currentpos);
 				break;
 			case PERIOD:
-				Reference ref = new IdRef(startingId, new SourcePosition(scanner.getLineNum()));
+				Reference ref = new IdRef(startingId, currentpos);
 
 				while (currentToken.getType() == TokenType.PERIOD) {
 					advance();
 
-					ref = new QualRef(ref, new Identifier(currentToken, new SourcePosition(scanner.getLineNum())), new SourcePosition(scanner.getLineNum()));
+					ref = new QualRef(ref, new Identifier(currentToken, currentpos), currentpos);
 					accept(TokenType.ID);
 				}
 
@@ -333,15 +334,15 @@ public class Parser {
 				// if the input is of the form
 				// id =
 				// then the id is a ref
-				ref = new IdRef(startingId, new SourcePosition(scanner.getLineNum()));
+				ref = new IdRef(startingId, currentpos);
 				ex = parseStatementAssign(); // expr value assigned to var id
 
-				statemt = new AssignStmt(ref, ex, new SourcePosition(scanner.getLineNum()));
+				statemt = new AssignStmt(ref, ex, currentpos);
 				break;
 			case LPAREN:
 				advance();
 
-				ref = new IdRef(startingId, new SourcePosition(scanner.getLineNum()));
+				ref = new IdRef(startingId, currentpos);
 				ExprList methodArgs = new ExprList();
 				if (currentToken.getType() != TokenType.RPAREN) {
 					methodArgs = parseArgList();
@@ -350,7 +351,7 @@ public class Parser {
 				accept(TokenType.RPAREN);
 				accept(TokenType.SEMICOLON);
 
-				statemt = new CallStmt(ref, methodArgs, new SourcePosition(scanner.getLineNum()));
+				statemt = new CallStmt(ref, methodArgs, currentpos);
 				break;
 			case LSQUARE:
 				// still need to decide between an array variable decl
@@ -365,24 +366,22 @@ public class Parser {
 
 					ex = parseStatementAssign(); // val array is initialized with
 
-					statemt = new VarDeclStmt(new VarDecl(new ArrayType(new ClassType(startingId, new SourcePosition(scanner.getLineNum())), 
-							new SourcePosition(scanner.getLineNum())), 
-							varName, new SourcePosition(scanner.getLineNum())), 
-							ex, new SourcePosition(scanner.getLineNum()));
+					statemt = new VarDeclStmt(new VarDecl(new ArrayType(new ClassType(startingId, currentpos), 
+							currentpos), varName, currentpos), ex, currentpos);
 				}
 				else { // indexed assign
-					ref = new IdRef(startingId, new SourcePosition(scanner.getLineNum()));
+					ref = new IdRef(startingId, currentpos);
 					
 					Expression indexExpr = parseExpr();
 					
 					accept(TokenType.RSQUARE);
 					ex = parseStatementAssign(); // value assigned to ref[indexExpr]
 					
-					statemt = new IxAssignStmt(ref, indexExpr, ex, new SourcePosition(scanner.getLineNum()));
+					statemt = new IxAssignStmt(ref, indexExpr, ex, currentpos);
 				}
 				break;
 			default:
-				throw new SyntaxError("failed to parse statement");
+				throw new SyntaxError("failed to parse statement", currentpos);
 			}
 			break;
 		case THIS:
@@ -398,11 +397,10 @@ public class Parser {
 			accept(TokenType.ID);
 			ex = parseStatementAssign();
 
-			statemt = new VarDeclStmt(new VarDecl(type, varName, new SourcePosition(scanner.getLineNum())),
-					ex, new SourcePosition(scanner.getLineNum()));
+			statemt = new VarDeclStmt(new VarDecl(type, varName, currentpos), ex, currentpos);
 			break;
 		default:
-			throw new SyntaxError("failed to parse statement");
+			throw new SyntaxError("failed to parse statement", currentpos);
 		}
 
 		return statemt;
@@ -417,7 +415,7 @@ public class Parser {
 
 			Expression ex = parseExpr();
 
-			statemt = new AssignStmt(ref, ex, new SourcePosition(scanner.getLineNum()));
+			statemt = new AssignStmt(ref, ex, currentpos);
 			break;
 		case LSQUARE:
 			advance();
@@ -427,7 +425,7 @@ public class Parser {
 			accept(TokenType.ASSIGNMENT);
 			ex = parseExpr(); // assigned to ref[index]
 
-			statemt = new IxAssignStmt(ref, indexExpr, ex, new SourcePosition(scanner.getLineNum()));
+			statemt = new IxAssignStmt(ref, indexExpr, ex, currentpos);
 			break;
 		case LPAREN:
 			advance();
@@ -439,10 +437,10 @@ public class Parser {
 
 			accept(TokenType.RPAREN);
 
-			statemt = new CallStmt(ref, argList, new SourcePosition(scanner.getLineNum()));
+			statemt = new CallStmt(ref, argList, currentpos);
 			break;
 		default:
-			throw new SyntaxError("failed to parse ref statement");
+			throw new SyntaxError("failed to parse ref statement", currentpos);
 		}
 		accept(TokenType.SEMICOLON);
 
@@ -461,10 +459,10 @@ public class Parser {
 		Expression leftExpr = parseConj();
 
 		while (currentToken.getType() == TokenType.BINOP && currentToken.getLexeme().equals("||")) {
-			Operator or = new Operator(currentToken, new SourcePosition(scanner.getLineNum()));
+			Operator or = new Operator(currentToken, currentpos);
 			advance();
 
-			leftExpr = new BinaryExpr(or, leftExpr, parseConj(), new SourcePosition(scanner.getLineNum()));
+			leftExpr = new BinaryExpr(or, leftExpr, parseConj(), currentpos);
 		}
 
 		return leftExpr;
@@ -474,9 +472,9 @@ public class Parser {
 		Expression leftExpr = parseEq();
 
 		while (currentToken.getType() == TokenType.BINOP && currentToken.getLexeme().equals("&&")) {
-			Operator and = new Operator(currentToken, new SourcePosition(scanner.getLineNum()));
+			Operator and = new Operator(currentToken, currentpos);
 			advance();
-			leftExpr = new BinaryExpr(and, leftExpr, parseEq(), new SourcePosition(scanner.getLineNum()));
+			leftExpr = new BinaryExpr(and, leftExpr, parseEq(), currentpos);
 		}
 
 		return leftExpr;
@@ -487,9 +485,9 @@ public class Parser {
 
 		while (currentToken.getType() == TokenType.BINOP
 				&& (currentToken.getLexeme().equals("==") || currentToken.getLexeme().equals("!="))) {
-			Operator equality = new Operator(currentToken, new SourcePosition(scanner.getLineNum()));
+			Operator equality = new Operator(currentToken, currentpos);
 			advance();
-			leftExpr = new BinaryExpr(equality, leftExpr, parseRel(), new SourcePosition(scanner.getLineNum()));
+			leftExpr = new BinaryExpr(equality, leftExpr, parseRel(), currentpos);
 		}
 
 		return leftExpr;
@@ -501,9 +499,9 @@ public class Parser {
 		while (currentToken.getType() == TokenType.BINOP
 				&& (currentToken.getLexeme().equals("<") || currentToken.getLexeme().equals(">")
 						|| currentToken.getLexeme().equals(">=") || currentToken.getLexeme().equals("<="))) {
-			Operator relation = new Operator(currentToken, new SourcePosition(scanner.getLineNum()));
+			Operator relation = new Operator(currentToken, currentpos);
 			advance();
-			leftExpr = new BinaryExpr(relation, leftExpr, parseAdd(), new SourcePosition(scanner.getLineNum()));
+			leftExpr = new BinaryExpr(relation, leftExpr, parseAdd(), currentpos);
 		}
 
 		return leftExpr;
@@ -517,9 +515,9 @@ public class Parser {
 			if (currentToken.getLexeme().equals("-"))
 				currentToken.convUnop2Binop();
 
-			Operator add = new Operator(currentToken, new SourcePosition(scanner.getLineNum()));
+			Operator add = new Operator(currentToken, currentpos);
 			advance();
-			leftExpr = new BinaryExpr(add, leftExpr, parseMult(), new SourcePosition(scanner.getLineNum()));
+			leftExpr = new BinaryExpr(add, leftExpr, parseMult(), currentpos);
 		}
 
 		return leftExpr;
@@ -530,10 +528,10 @@ public class Parser {
 
 		while (currentToken.getType() == TokenType.BINOP
 				&& (currentToken.getLexeme().equals("*") || currentToken.getLexeme().equals("/"))) {
-			Operator times = new Operator(currentToken, new SourcePosition(scanner.getLineNum()));
+			Operator times = new Operator(currentToken, currentpos);
 
 			advance();
-			leftExpr = new BinaryExpr(times, leftExpr, parseUnary(), new SourcePosition(scanner.getLineNum()));
+			leftExpr = new BinaryExpr(times, leftExpr, parseUnary(), currentpos);
 		}
 
 		return leftExpr;
@@ -541,9 +539,9 @@ public class Parser {
 
 	Expression parseUnary() {
 		if (currentToken.getType() == TokenType.UNOP) {
-			Operator negate = new Operator(currentToken, new SourcePosition(scanner.getLineNum()));
+			Operator negate = new Operator(currentToken, currentpos);
 			advance();
-			return new UnaryExpr(negate, parseUnary(), new SourcePosition(scanner.getLineNum()));
+			return new UnaryExpr(negate, parseUnary(), currentpos);
 		} else {
 			return parseVal();
 		}
@@ -562,7 +560,7 @@ public class Parser {
 				Expression indexExpr = parseExpr();
 				accept(TokenType.RSQUARE);
 
-				expr = new IxExpr(ref, indexExpr, new SourcePosition(scanner.getLineNum()));
+				expr = new IxExpr(ref, indexExpr, currentpos);
 			} else if (currentToken.getType() == TokenType.LPAREN) {
 				advance();
 
@@ -572,9 +570,9 @@ public class Parser {
 				}
 				accept(TokenType.RPAREN);
 
-				expr = new CallExpr(ref, argsList, new SourcePosition(scanner.getLineNum()));
+				expr = new CallExpr(ref, argsList, currentpos);
 			} else {
-				expr = new RefExpr(ref, new SourcePosition(scanner.getLineNum()));
+				expr = new RefExpr(ref, currentpos);
 			}
 			break;
 		case LPAREN:
@@ -583,40 +581,36 @@ public class Parser {
 			accept(TokenType.RPAREN);
 			break;
 		case NUM_LITERAL:
-			expr = new LiteralExpr(new IntLiteral(currentToken, new SourcePosition(scanner.getLineNum())),
-					new SourcePosition(scanner.getLineNum()));
+			expr = new LiteralExpr(new IntLiteral(currentToken, currentpos), currentpos);
 			advance();
 			break;
 		case NULL:
-			expr = new LiteralExpr(new NullLiteral(currentToken, new SourcePosition(scanner.getLineNum())),
-					new SourcePosition(scanner.getLineNum()));
+			expr = new LiteralExpr(new NullLiteral(currentToken, currentpos), currentpos);
 			advance();
 			break;
 		case T:
 		case F:
-			expr = new LiteralExpr(new BooleanLiteral(currentToken, new SourcePosition(scanner.getLineNum())),
-					new SourcePosition(scanner.getLineNum()));
+			expr = new LiteralExpr(new BooleanLiteral(currentToken, currentpos), currentpos);
 			advance();
 			break;
 		case NEW:
 			advance();
 
 			if (currentToken.getType() == TokenType.ID) {
-				ClassType newclass = new ClassType(new Identifier(currentToken, new SourcePosition(scanner.getLineNum())),
-						new SourcePosition(scanner.getLineNum()));
+				ClassType newclass = new ClassType(new Identifier(currentToken, currentpos), currentpos);
 				advance();
 
 				if (currentToken.getType() == TokenType.LPAREN) {
 					advance();
 					accept(TokenType.RPAREN);
 
-					expr = new NewObjectExpr(newclass, new SourcePosition(scanner.getLineNum()));
+					expr = new NewObjectExpr(newclass, currentpos);
 				} else {
 					accept(TokenType.LSQUARE);
 					Expression sizeExpr = parseExpr();
 					accept(TokenType.RSQUARE);
 
-					expr = new NewArrayExpr(newclass, sizeExpr, new SourcePosition(scanner.getLineNum()));
+					expr = new NewArrayExpr(newclass, sizeExpr, currentpos);
 				}
 			} else if (currentToken.getType() == TokenType.INT) {
 				advance();
@@ -624,14 +618,13 @@ public class Parser {
 				Expression sizeExpr = parseExpr();
 				accept(TokenType.RSQUARE);
 
-				expr = new NewArrayExpr(new BaseType(TypeKind.INT, new SourcePosition(scanner.getLineNum())), 
-						sizeExpr, new SourcePosition(scanner.getLineNum()));
+				expr = new NewArrayExpr(new BaseType(TypeKind.INT, currentpos), sizeExpr, currentpos);
 			} else {
-				throw new SyntaxError("invalid use of new in expression");
+				throw new SyntaxError("invalid use of new in expression", currentpos);
 			}
 			break;
 		default:
-			throw new SyntaxError("invalid expression");
+			throw new SyntaxError("invalid expression", currentpos);
 		}
 
 		return expr;
@@ -641,20 +634,25 @@ public class Parser {
 		if (currentToken.getType() == expectedToken) {
 			advance();
 		} else {
-			throw new SyntaxError(expectedToken, currentToken.getType());
+			throw new SyntaxError(expectedToken, currentToken.getType(), currentpos);
 		}
 	}
 
 	private void advance() {
 		if (trace)
 			pTrace();
-
+		
+		// scan forwards until a non-comment token is reached
 		do {
 			currentToken = scanner.getNextToken();
 		} while (currentToken.getType() == TokenType.COMMENT);
-
+		
+		// update the current position of the compiler
+		if(currentpos.getStartLine() != scanner.getLineNum()) currentpos = new SourcePosition(scanner.getLineNum());
+		
+		// lexing error, bad token encountered
 		if (currentToken.getType() == TokenType.ERROR) {
-			throw new SyntaxError("Lexical error, " + currentToken.getLexeme());
+			throw new SyntaxError("Lexical error, " + currentToken.getLexeme(), currentpos);
 		}
 	}
 

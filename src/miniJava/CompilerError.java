@@ -4,12 +4,15 @@ public class CompilerError extends Error{
 	private static final long serialVersionUID = 1L;
 	
 	protected String errorMessage;
+	private SourcePosition srcpos;
 	
-	public CompilerError() {
+	public CompilerError(SourcePosition sp) {
+		srcpos = sp;
 		errorMessage = "";
 	}
 	
-	public CompilerError(String error) {
+	public CompilerError(SourcePosition sp, String error) {
+		srcpos = sp;
 		errorMessage = error;
 	}
 	
@@ -18,6 +21,6 @@ public class CompilerError extends Error{
 	}
 	
 	public String toString() {
-		return "Compilation Error:: " + errorMessage;
+		return "*** line " + srcpos.getStartLine() + ": " + errorMessage;
 	}
 }
