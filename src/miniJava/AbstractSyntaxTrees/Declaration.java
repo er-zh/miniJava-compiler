@@ -8,13 +8,13 @@ package miniJava.AbstractSyntaxTrees;
 import miniJava.SourcePosition;
 
 public abstract class Declaration extends AST {
-	
+	public String name;
+	public TypeDenoter type;
+
 	public Declaration(String name, TypeDenoter type, SourcePosition posn) {
 		super(posn);
 		this.name = name;
 		this.type = type;
 	}
-	
-	public String name;
-	public TypeDenoter type;
+
 }
