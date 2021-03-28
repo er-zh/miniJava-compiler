@@ -61,15 +61,6 @@ public class IdChecker implements Visitor<Object, Object>{
 		currentClassDecl = null;
 	}
 	
-	public static void main(String[] args) {
-		HashMap<String, String> h = new HashMap<String, String>();
-		
-		Integer i = 3;
-		Object j = i;
-		File f = (File) j;
-		
-	}
-	
 	public IdChecker() { // TODO remove this
 		table = new IdTable();
 		err = null;
