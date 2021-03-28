@@ -1,8 +1,5 @@
 package miniJava.ContextualAnalyzer;
 
-import java.io.File;
-import java.util.HashMap;
-
 import miniJava.ErrorReporter;
 import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ArrayType;
@@ -56,18 +53,12 @@ public class IdChecker implements Visitor<Object, Object>{
 	private ClassDecl currentClassDecl; 
 	
 	public IdChecker(ErrorReporter reporter) {
-		table = new IdTable();
 		err = reporter;
+		table = new IdTable(err);
 		currentClassDecl = null;
 	}
-	
-	public IdChecker() { // TODO remove this
-		table = new IdTable();
-		err = null;
-	} // should really only be used for testing if at all
 
-	// TODO handle exceptions thrown by idTable
-	public void check(AST ast) {
+	public void check(AST ast) {// should not be called multiple times
 		ast.visit(this, null);
 	}
 	
@@ -113,7 +104,7 @@ public class IdChecker implements Visitor<Object, Object>{
 
 	@Override
 	public Object visitMethodDecl(MethodDecl md, Object arg) {
-		md.type.visit(this, null);
+		md.type.visit(this, null); // return type of the method
 		
 		table.openScope(); // level 3 -- params
 		
@@ -122,7 +113,7 @@ public class IdChecker implements Visitor<Object, Object>{
 		
 		for(ParameterDecl pd : pdl) table.enter(pd);
 		
-		table.openScope(); // level 4 --- inside of the method
+		table.openScope(); // level 4 --- local method vars
 		
 		for(ParameterDecl pd : pdl) pd.visit(this, null);
 		

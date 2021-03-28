@@ -3,6 +3,7 @@ package miniJava.ContextualAnalyzer;
 import java.util.HashMap;
 import java.util.Stack;
 
+import miniJava.ErrorReporter;
 import miniJava.AbstractSyntaxTrees.Declaration;
 
 public class IdTable {
@@ -13,10 +14,12 @@ public class IdTable {
 	
 	private Stack<HashMap<String, SDecl>> table;
 	private int level;
+	private ErrorReporter err;
 	
-	public IdTable() {
+	public IdTable(ErrorReporter reporter) {
 		table = new Stack<HashMap<String, SDecl>>();
 		level = 0;
+		err = reporter;
 	}
 	
 	public void enter(Declaration dec) throws SemanticError{
@@ -31,13 +34,13 @@ public class IdTable {
 			SDecl shadowed = currentScope.get(name);
 			
 			if(level > 3 && shadowed.scopelevel >= 3) {
-				throw new SemanticError(name + "is a local variable (level 4+) which may not hide other local names"
-						+ "or parameter names (level 3+)", 
-						dec.posn, false);
+				err.reportError(new SemanticError(name + "is a local variable (level 4+) which "
+						+ "may not hide other local names or parameter names (level 3+)", 
+						dec.posn, false));
 			}
 			else if(shadowed.scopelevel == level) {
-				throw new SemanticError(name + " duplicates a declaration in the same scope",
-						dec.posn, false);
+				err.reportError(new SemanticError(name + " duplicates a declaration in the same scope",
+						dec.posn, false));
 			}
 		}
 		
