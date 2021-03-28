@@ -16,11 +16,12 @@ public class IdTable {
 	
 	public IdTable() {
 		table = new Stack<HashMap<String, SDecl>>();
-		level = 1;
+		level = 0;
 	}
 	
-	public void enter(String name, Declaration dec) throws SemanticError{
+	public void enter(Declaration dec) throws SemanticError{
 		HashMap<String, SDecl> currentScope = table.peek();
+		String name = dec.name;
 		SDecl sd = new SDecl();
 		sd.scopelevel = level;
 		sd.decl = dec;
@@ -44,13 +45,18 @@ public class IdTable {
 	}
 
 	public Declaration retrieve(String name) {
-		return table.peek().get(name).decl;
-		
-		// TODO throw identification error in case of undeclared name
+		SDecl sd = table.peek().get(name);
+		if(sd == null) return null;
+		return sd.decl;
 	}
 	
 	public void openScope() {
-		table.push(new HashMap<String, SDecl>(table.peek()));
+		if(table.isEmpty()) {
+			table.push(new HashMap<String, SDecl>());
+		}
+		else {
+			table.push(new HashMap<String, SDecl>(table.peek()));
+		}
 		
 		level++;
 	}

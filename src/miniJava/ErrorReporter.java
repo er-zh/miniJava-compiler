@@ -5,7 +5,7 @@ import java.util.ArrayList;
 public class ErrorReporter {
 	private ArrayList<CompilerError> errors;
 
-	ErrorReporter() {
+	public ErrorReporter() {
 		errors = new ArrayList<CompilerError>();
 	}
 

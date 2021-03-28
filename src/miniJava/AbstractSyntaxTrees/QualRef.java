@@ -8,11 +8,13 @@ package miniJava.AbstractSyntaxTrees;
 import miniJava.SourcePosition;
 
 public class QualRef extends Reference {
-	
-	public QualRef(Reference ref, Identifier id, SourcePosition posn){
+	public Reference ref;
+	public Identifier id;
+
+	public QualRef(Reference ref, Identifier id, SourcePosition posn) {
 		super(posn);
 		this.ref = ref;
-		this.id  = id;
+		this.id = id;
 	}
 
 	@Override
@@ -20,6 +22,4 @@ public class QualRef extends Reference {
 		return v.visitQRef(this, o);
 	}
 
-	public Reference ref;
-	public Identifier id;
 }

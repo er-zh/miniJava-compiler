@@ -7,10 +7,19 @@ package miniJava.AbstractSyntaxTrees;
 
 import miniJava.SourcePosition;
 
-public abstract class Reference extends AST
-{
-	public Reference(SourcePosition posn){
-		super(posn);
-	}
+public abstract class Reference extends AST {
+	private Declaration controllingDecl;
 
+	public Reference(SourcePosition posn) {
+		super(posn);
+		controllingDecl = null;
+	}
+	
+	public void linkDecl(Declaration dec) {
+		controllingDecl = dec;
+	}
+	
+	public Declaration getDecl() {
+		return controllingDecl;
+	}
 }
