@@ -21,4 +21,14 @@ public class ErrorReporter {
 		// TODO add line number locations to error report
 		return errors.get(0).toString();
 	}
+	
+	public String toString() {
+		String report = "";
+		
+		for(CompilerError err : errors) {
+			report = report + err.toString() + "\n";
+		}
+		
+		return report;
+	}
 }
