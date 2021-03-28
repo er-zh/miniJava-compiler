@@ -1,6 +1,7 @@
 package miniJava.ContextualAnalyzer;
 
 import miniJava.ErrorReporter;
+import miniJava.SourcePosition;
 import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.AssignStmt;
@@ -40,13 +41,17 @@ import miniJava.AbstractSyntaxTrees.ReturnStmt;
 import miniJava.AbstractSyntaxTrees.Statement;
 import miniJava.AbstractSyntaxTrees.StatementList;
 import miniJava.AbstractSyntaxTrees.ThisRef;
+import miniJava.AbstractSyntaxTrees.TypeKind;
 import miniJava.AbstractSyntaxTrees.UnaryExpr;
 import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
+import miniJava.SyntacticAnalyzer.Token;
+import miniJava.SyntacticAnalyzer.TokenType;
 
 public class IdChecker implements Visitor<Object, Object>{
+	
 	private IdTable table;
 	private ErrorReporter err;
 	//used for identfying instances of this
@@ -68,6 +73,8 @@ public class IdChecker implements Visitor<Object, Object>{
 		
 		ClassDeclList clDecList = prog.classDeclList;
 		
+		addPredecIds(clDecList);
+		
 		for(ClassDecl classDec : clDecList) table.enter(classDec);
 		
 		for(ClassDecl classDec : clDecList) {
@@ -77,6 +84,31 @@ public class IdChecker implements Visitor<Object, Object>{
 		
 		table.closeScope();
 		return null;
+	}
+	
+	private void addPredecIds(ClassDeclList cdl) {
+		// predeclared identifiers used in miniJava
+		// these identifiers will have 0 as their sourceposition as
+		// they are not found within the source file
+		SourcePosition predecl = new SourcePosition(0);
+
+		// extra definitions for the println method of _PrintStream
+		MethodDeclList psmdl = new MethodDeclList();
+		ParameterDeclList printpl = new ParameterDeclList();
+		printpl.add(new ParameterDecl(new BaseType(TypeKind.INT, predecl), "n", predecl));
+		psmdl.add(new MethodDecl(new FieldDecl(false, false, new BaseType(TypeKind.VOID, predecl), 
+				"println", predecl),
+				printpl, new StatementList(), predecl));
+
+		// extra definitions for the out field of System
+		FieldDeclList Systemfdl = new FieldDeclList();
+		Identifier outTypeid = new Identifier(new Token(TokenType.ID, "_PrintStream"), predecl);
+		Systemfdl.add(new FieldDecl(false, true, new ClassType(outTypeid, predecl), "out", predecl));
+
+		
+		cdl.add(new ClassDecl("System", Systemfdl, new MethodDeclList(), predecl)); // predef'd System class
+		cdl.add(new ClassDecl("_PrintStream", new FieldDeclList(), psmdl, predecl)); // predef'd _PrintStream class
+		cdl.add(new ClassDecl("String", new FieldDeclList(), new MethodDeclList(), predecl)); // predef'd String class
 	}
 
 	@Override
@@ -90,7 +122,9 @@ public class IdChecker implements Visitor<Object, Object>{
 		for(MethodDecl md : mdl) table.enter(md);
 		
 		for(FieldDecl fd : fdl) fd.visit(this, null);
-		for(MethodDecl md : mdl) md.visit(this, null);
+		for(MethodDecl md : mdl) {
+			md.visit(this, null);
+		}
 		
 		table.closeScope();
 		return null;
@@ -117,7 +151,9 @@ public class IdChecker implements Visitor<Object, Object>{
 		
 		for(ParameterDecl pd : pdl) pd.visit(this, null);
 		
-		for(Statement s : sl) s.visit(this, null);
+		for(Statement s : sl) {
+			s.visit(this, null);
+		}
 		
 		
 		table.closeScope();
@@ -322,13 +358,20 @@ public class IdChecker implements Visitor<Object, Object>{
 		// for a.b, a must be a var, param, or field
 		// then check their typeDenoter for the class type
 		ClassDecl classdec = null;
-		try {
-			classdec = (ClassDecl)((ClassType)conDecl.type).className.getDecl();
+		if(conDecl.type == null) {
+			try {
+				classdec = (ClassDecl)((ClassType)conDecl.type).className.getDecl();
+			}
+			catch(ClassCastException cce) {
+				err.reportError(new SemanticError("identifier being dereferenced does not refer to an instance of a class",
+						ref.posn, false));
+				return null;
+			}
 		}
-		catch(ClassCastException cce) {
-			err.reportError(new SemanticError("identifier being dereferenced does not refer to an instance of a class",
-					ref.posn, false));
-			return null;
+		else { 
+			// conDecl.type is null meaing the controlling decl is already a class
+			// and not an instance
+			// thus this is an access to a static item
 		}
 		
 		Declaration idDecl = findMemberDecl(ref.id, classdec);
@@ -348,11 +391,11 @@ public class IdChecker implements Visitor<Object, Object>{
 		String idname = id.spelling;
 		
 		for(FieldDecl fd : classdec.fieldDeclList) {
-			if(fd.name == idname) return fd;
+			if(idname.equals(fd.name)) return fd;
 		}
 		
 		for(MethodDecl md : classdec.methodDeclList) {
-			if(md.name == idname) return md;
+			if(idname.equals(md.name)) return md;
 		}
 		
 		// if the correct decl is not found in the controlling
@@ -367,7 +410,7 @@ public class IdChecker implements Visitor<Object, Object>{
 	public Object visitIdentifier(Identifier id, Object arg) {
 		Declaration dec = table.retrieve(id.spelling);
 		if(dec == null) {
-			err.reportError(new SemanticError(id.spelling + " class type referenced but not previously declared",
+			err.reportError(new SemanticError(id.spelling + " referenced but not previously declared",
 					id.posn, false));
 		}
 		else {

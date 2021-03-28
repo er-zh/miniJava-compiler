@@ -6,7 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import miniJava.ErrorReporter;
@@ -39,13 +39,39 @@ class IdentificationTests {
 		ic = new IdChecker(err);
 	}
 	
+	void pass() {
+		assertTrue(ast != null);
+		
+		ic.check(ast);
+		
+		assertTrue(err.hasErrors() == false);
+	}
+	
+	void error(int ln) {
+		assertTrue(ast != null);
+		
+		ic.check(ast);
+		
+		assertTrue(err.hasErrors() == true);
+		
+		assertEquals("*** line "+ln+":", err.getErrorReport().substring(0, 11));
+	}
+	
 	@Test
+	@Disabled
 	void testErrReportParse() {
 		String file = "../tests/pa2_tests/fail120.java";
 		
 		setupTest(file);
 		assertTrue(ast == null);
 		String rep = err.getErrorReport();
+		assertEquals("*** line 4:", rep.substring(0, 11));
+		
+		file = "../tests/pa2_tests/fail217.java";
+		
+		setupTest(file);
+		assertTrue(ast == null);
+		rep = err.getErrorReport();
 		assertEquals("*** line 4:", rep.substring(0, 11));
 		
 		file = "../tests/pa2_tests/fail171.java";
@@ -56,28 +82,227 @@ class IdentificationTests {
 		assertEquals("*** line 5:", rep.substring(0, 11));
 	}
 	
+	// TODO passing cases should also test that ids have been correctly
+	// linked to their declarations
+	
 	@Test
-	void testBaseFieldDecs() {
-		// only tests base types: boolean, int, int[]
-		String file = "../tests/pa3_selfmade/pass_field_decs.java";
-		setupTest(file);
-		assertTrue(ast != null);
-		
-		ic.check(ast);
-		
-		assertTrue(err.hasErrors() == false);
+	void testPredefs1() {
+		// tests that the String class is present
+		setupTest("../tests/pa3_selfmade/pass_predefs1.java");
+		pass();
+	}
+	
+	@Test
+	void testPredefs2() {
+		// tests that the System and _PrintStream classes are present
+		setupTest("../tests/pa3_selfmade/pass_predefs2.java");
+		pass();
+	}
+	
+	@Test
+	void testFieldDeclPass1() {
+		// tests base types: boolean, int, int[]
+		setupTest("../tests/pa3_selfmade/pass_field_decs.java");
+		pass();
+	}
+	
+	@Test
+	void testFieldDeclPass2() {
+		// tests basic class types
+		setupTest("../tests/pa3_selfmade/pass_field_decs_classes1.java");
+		pass();
 	}
 	
 	@Test
 	void testFieldDeclFail1() {
 		// fails a field dec that has type of undeclared class
-		String file = "../tests/pa3_selfmade/fail_fieldw_no_dec.java";
-		setupTest(file);
-		assertTrue(ast != null);
-		
-		ic.check(ast);
-		
-		assertTrue(err.hasErrors() == true);
-		assertEquals("*** line 3:", err.getErrorReport().substring(0, 11));
+		setupTest("../tests/pa3_selfmade/fail_fieldw_no_dec.java");
+		error(3);
 	}
+	
+	@Test
+	void testFieldDeclFail2() {
+		// fails a field dec that duplicates an identifier
+		setupTest("../tests/pa3_selfmade/fail_field_duplicate.java");
+		error(5);
+	}
+	
+	@Test
+	void testFieldDeclFail3() {
+		// fails a field dec that duplicates an identifier
+		setupTest("../tests/pa3_selfmade/fail_field_duplicate2.java");
+		error(4);
+	}
+	
+	@Test 
+	void testMethodDeclPass1(){
+		// tests a simple method declarations using base return types
+		// i.e.    int, int[], boolean, and void
+		setupTest("../tests/pa3_selfmade/pass_method_decs1.java");
+		pass();
+	}
+	
+	@Test
+	void testMethodDeclPass2() {
+		// tests method decs using other classes as return types
+		setupTest("../tests/pa3_selfmade/pass_method_decs2.java");
+		pass();
+	}
+	
+	@Test
+	void testMethodDeclPass3() {
+		// tests method decs with parameters that are base types
+		// return type can be a base type or can be a class type
+		setupTest("../tests/pa3_selfmade/pass_method_decs3.java");
+		pass();
+	}
+	
+	@Test
+	void testMethodDeclPass4() {
+		// tests method decs with parameters that are class types
+		// return type can be a base type or can be a class type
+		setupTest("../tests/pa3_selfmade/pass_method_decs4.java");
+		pass();
+	}
+	
+	@Test
+	void testMethodDeclFail1() {
+		// fails a method dec that duplicates an identifier
+		setupTest("../tests/pa3_selfmade/fail_method_decs1.java");
+		error(5);
+	}
+	
+	@Test
+	void testMethodDeclFail2() {
+		// fails a method dec that has undeclared return type
+		setupTest("../tests/pa3_selfmade/fail_method_decs2.java");
+		error(1);
+	}
+	
+	@Test
+	void testMethodDeclFail3() {
+		// fails a method dec that has undeclared return type
+		setupTest("../tests/pa3_selfmade/fail_method_decs3.java");
+		error(2);
+	}
+	
+	@Test
+	void testMethodDeclFail4() {
+		// fails a method dec that has undeclared return type
+		setupTest("../tests/pa3_selfmade/fail_method_decs4.java");
+		error(2);
+	}
+	
+	@Test
+	void testVarDeclPass1() {
+		setupTest("../tests/pa3_selfmade/pass_vars1.java");
+		pass();
+	}
+	
+	@Test
+	void testVarDeclFail1() {
+		// fails a method dec that has duplicate local vars
+		setupTest("../tests/pa3_selfmade/fail_vars1.java");
+		error(5);
+	}
+	
+	@Test
+	void testVarDeclFail2() {
+		// fails a method that has undeclared typing for a local variable
+		setupTest("../tests/pa3_selfmade/fail_vars2.java");
+		error(3);
+	}
+	
+	@Test
+	void testVarDeclFail3() {
+		// fails a method that shadows a param with a local var
+		setupTest("../tests/pa3_selfmade/fail_vars3.java");
+		error(3);
+		
+		//System.out.println(err);
+	}
+	
+	@Test
+	void testVarDeclFail4() {
+		// fails a method that uses a variable prior to declaration
+		setupTest("../tests/pa3_selfmade/fail_vars4.java");
+		error(3);
+		
+		//System.out.println(err);
+	}
+	
+	@Test
+	void testPassScopeIndep1() {
+		// test independent scoping of fields in different class
+		
+		setupTest("../tests/pa3_selfmade/pass_indep_scope_fields1.java");
+		pass();
+	}
+	
+	@Test
+	void testPassScopeIndep2() {
+		// test independent scoping of fields in different class
+		setupTest("../tests/pa3_selfmade/pass_indep_scope_fields2.java");
+		pass();
+	}
+	
+	@Test
+	void testPassScopeIndep3() {
+		// test independent scoping of fields in classes with one containing the other
+		setupTest("../tests/pa3_selfmade/pass_indep_scope_fields3.java");
+		pass();
+	}
+	
+	@Test
+	void testPassScopeIndep4() {
+		// test independent scoping of fields in classes with one containing the other
+		setupTest("../tests/pa3_selfmade/pass_indep_scope_fields4.java");
+		pass();
+	}
+	
+	@Test
+	void testPassScopeIndep5() {
+		// test independent scoping of methods
+		setupTest("../tests/pa3_selfmade/pass_indep_scope_methods1.java");
+		pass();
+	}
+	
+	@Test
+	void testPassScopeIndep6() {
+		// test independent scoping of methods
+		setupTest("../tests/pa3_selfmade/pass_indep_scope_methods2.java");
+		pass();
+	}
+	
+	@Test
+	void testVarsPass1() {
+		// simple test, check that declared variable can be used elsewhere
+		setupTest("../tests/pa3_selfmade/pass_vars2.java");
+		pass();
+	}
+	
+	@Test
+	void testRefsPass1() {
+		//testing simple id refs
+		setupTest("../tests/pa3_selfmade/pass_refs1.java");
+		pass();
+	}
+	
+	@Test
+	void testRefsPass2() {
+		//testing qualified references
+		setupTest("../tests/pa3_selfmade/pass_refs2.java");
+		pass();
+	}
+	
+	@Test
+	void testRefsFail1() {
+		//testing simple id refs
+		setupTest("../tests/pa3_selfmade/fail_refs1.java");
+		error(3);
+		//System.out.println(err);
+	}
+	
+	
+	
 }

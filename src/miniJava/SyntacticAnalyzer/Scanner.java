@@ -19,7 +19,6 @@ public class Scanner {
 	private InputStream scanInput;
 	private char currentChar;
 	private boolean eot;
-	
 	private int lineNumber;
 	
 	public Scanner(InputStream input) {
@@ -224,23 +223,28 @@ public class Scanner {
 	}
 	
 	// gets the next character in the input stream by storing it in the currentChar field
+	private boolean delayline = false;
 	private void nextChar() {
 		if(eot) return;
+		
+		if(delayline) {
+			lineNumber++;
+			delayline = false;
+		}
 		
 		try {
 			int c = scanInput.read();
 			
 			if(c == -1) {
-				currentChar = ' ';
 				eot = true;
 			}
-			else {
-				currentChar = (char) c;
+			
+			currentChar = (char) c;
 				
-				if(c == eolWindows || c == eolUnix) {
-					lineNumber++;
-				}
+			if(c == eolWindows || c == eolUnix) {
+				delayline = true;
 			}
+			
 		}
 		catch(IOException ioe) {
 			ioe.printStackTrace();

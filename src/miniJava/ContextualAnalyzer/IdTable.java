@@ -33,13 +33,13 @@ public class IdTable {
 		if(currentScope.containsKey(name)) {
 			SDecl shadowed = currentScope.get(name);
 			
-			if(level > 3 && shadowed.scopelevel >= 3) {
-				err.reportError(new SemanticError(name + "is a local variable (level 4+) which "
-						+ "may not hide other local names or parameter names (level 3+)", 
+			if(shadowed.scopelevel == level) {
+				err.reportError(new SemanticError(name + " duplicates a declaration in the same scope",
 						dec.posn, false));
 			}
-			else if(shadowed.scopelevel == level) {
-				err.reportError(new SemanticError(name + " duplicates a declaration in the same scope",
+			else if(level > 3 && shadowed.scopelevel >= 3) {
+				err.reportError(new SemanticError(name + " is a local variable (level 4+) which "
+						+ "may not hide other local names or parameter names (level 3+)", 
 						dec.posn, false));
 			}
 		}

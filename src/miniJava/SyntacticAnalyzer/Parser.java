@@ -90,8 +90,8 @@ public class Parser {
 				accept(TokenType.ID);
 
 				if (currentToken.getType() == TokenType.SEMICOLON) {
-					parseFieldDecl();
 					fields.add(new FieldDecl(isPrivate, isStatic, type, memberName, currentpos));
+					parseFieldDecl();
 				} else {
 					methods.add(parseMethodDecl(new FieldDecl(isPrivate, isStatic, type, memberName, currentpos)));
 				}
@@ -107,7 +107,7 @@ public class Parser {
 		accept(TokenType.SEMICOLON);
 	}
 
-	MethodDecl parseMethodDecl(MemberDecl md) {
+	MethodDecl parseMethodDecl(MemberDecl md) {		
 		accept(TokenType.LPAREN);
 
 		ParameterDeclList params = new ParameterDeclList();
@@ -126,7 +126,7 @@ public class Parser {
 
 		accept(TokenType.RBRACE);
 
-		return new MethodDecl(md, params, body, currentpos);
+		return new MethodDecl(md, params, body, md.posn);
 	}
 
 	// can be empty
@@ -240,6 +240,8 @@ public class Parser {
 
 	Statement parseStatement() {
 		Statement statemt = null;
+		SourcePosition stmtStart = currentpos;
+		
 		switch (currentToken.getType()) {
 		case LBRACE:
 			advance();
@@ -251,7 +253,7 @@ public class Parser {
 			}
 			accept(TokenType.RBRACE);
 
-			statemt = new BlockStmt(statements, currentpos);
+			statemt = new BlockStmt(statements, stmtStart);
 			break;
 		case IF:
 			advance();
@@ -271,7 +273,7 @@ public class Parser {
 				els = parseStatement();
 			}
 
-			statemt = new IfStmt(ex, then, els, currentpos);
+			statemt = new IfStmt(ex, then, els, stmtStart);
 			break;
 		case WHILE:
 			advance();
@@ -284,7 +286,7 @@ public class Parser {
 
 			body = parseStatement();
 
-			statemt = new WhileStmt(ex, body, currentpos);
+			statemt = new WhileStmt(ex, body, stmtStart);
 			break;
 		case RETURN:
 			advance();
@@ -296,7 +298,7 @@ public class Parser {
 			}
 			accept(TokenType.SEMICOLON);
 
-			statemt = new ReturnStmt(ex, currentpos);
+			statemt = new ReturnStmt(ex, stmtStart);
 			break;
 		case ID:
 			// need to decide between statements of the form:
@@ -314,9 +316,11 @@ public class Parser {
 
 				advance();
 				ex = parseStatementAssign(); // expr whose value var id is initialized with
-
-				statemt = new VarDeclStmt(new VarDecl(new ClassType(startingId, currentpos), varName, currentpos), 
-						ex, currentpos);
+				
+				SourcePosition declpos = startingId.posn;
+				statemt = new VarDeclStmt(new VarDecl(new ClassType(startingId, declpos), 
+						varName, declpos), 
+						ex, stmtStart);
 				break;
 			case PERIOD:
 				Reference ref = new IdRef(startingId, currentpos);
@@ -329,6 +333,7 @@ public class Parser {
 				}
 
 				statemt = parseStatementRef(ref);
+				statemt.posn = stmtStart;
 				break;
 			case ASSIGNMENT:
 				// if the input is of the form
@@ -337,7 +342,7 @@ public class Parser {
 				ref = new IdRef(startingId, currentpos);
 				ex = parseStatementAssign(); // expr value assigned to var id
 
-				statemt = new AssignStmt(ref, ex, currentpos);
+				statemt = new AssignStmt(ref, ex, stmtStart);
 				break;
 			case LPAREN:
 				advance();
@@ -351,7 +356,7 @@ public class Parser {
 				accept(TokenType.RPAREN);
 				accept(TokenType.SEMICOLON);
 
-				statemt = new CallStmt(ref, methodArgs, currentpos);
+				statemt = new CallStmt(ref, methodArgs, stmtStart);
 				break;
 			case LSQUARE:
 				// still need to decide between an array variable decl
@@ -365,9 +370,13 @@ public class Parser {
 					accept(TokenType.ID);
 
 					ex = parseStatementAssign(); // val array is initialized with
-
-					statemt = new VarDeclStmt(new VarDecl(new ArrayType(new ClassType(startingId, currentpos), 
-							currentpos), varName, currentpos), ex, currentpos);
+					
+					declpos = startingId.posn;
+					
+					statemt = new VarDeclStmt(new VarDecl(new ArrayType(new ClassType(startingId, declpos), 
+							declpos), 
+							varName, declpos), 
+							ex, stmtStart);
 				}
 				else { // indexed assign
 					ref = new IdRef(startingId, currentpos);
@@ -377,17 +386,18 @@ public class Parser {
 					accept(TokenType.RSQUARE);
 					ex = parseStatementAssign(); // value assigned to ref[indexExpr]
 					
-					statemt = new IxAssignStmt(ref, indexExpr, ex, currentpos);
+					statemt = new IxAssignStmt(ref, indexExpr, ex, stmtStart);
 				}
 				break;
 			default:
-				throw new SyntaxError("failed to parse statement", currentpos);
+				throw new SyntaxError("failed to parse statement", stmtStart);
 			}
 			break;
 		case THIS:
 			Reference thisref = parseRef();
 
 			statemt = parseStatementRef(thisref);
+			statemt.posn = stmtStart;
 			break;
 		case BOOLEAN:
 		case INT:
@@ -397,10 +407,10 @@ public class Parser {
 			accept(TokenType.ID);
 			ex = parseStatementAssign();
 
-			statemt = new VarDeclStmt(new VarDecl(type, varName, currentpos), ex, currentpos);
+			statemt = new VarDeclStmt(new VarDecl(type, varName, stmtStart), ex, stmtStart);
 			break;
 		default:
-			throw new SyntaxError("failed to parse statement", currentpos);
+			throw new SyntaxError("failed to parse statement", stmtStart);
 		}
 
 		return statemt;
