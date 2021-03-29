@@ -48,6 +48,7 @@ class IdentificationTests {
 	}
 	
 	void error(int ln) {
+		
 		assertTrue(ast != null);
 		
 		ic.check(ast);
@@ -296,6 +297,20 @@ class IdentificationTests {
 	}
 	
 	@Test
+	void testRefsPass3() {
+		//testing qualified references
+		setupTest("../tests/pa3_selfmade/pass_refs3.java");
+		pass();
+	}
+	
+	@Test
+	void testRefsPass4() {
+		//testing qualified references
+		setupTest("../tests/pa3_selfmade/pass_refs4.java");
+		pass();
+	}
+	
+	@Test
 	void testRefsFail1() {
 		//testing simple id refs
 		setupTest("../tests/pa3_selfmade/fail_refs1.java");
@@ -303,6 +318,36 @@ class IdentificationTests {
 		//System.out.println(err);
 	}
 	
+	@Test
+	void testRefsFail2() {
+		// attempt to access private member of another class should fail
+		setupTest("../tests/pa3_selfmade/fail_refs2.java");
+		error(3);
+		//System.out.println(err);
+	}
 	
+	@Test
+	void testRefsFail3() {
+		// using this within a static method should fail
+		setupTest("../tests/pa3_selfmade/fail_refs3.java");
+		error(3);
+		//System.out.println(err);
+	}
+	
+	@Test
+	void testRefsFail4() {
+		// using this within a static method should fail
+		setupTest("../tests/pa3_selfmade/fail_refs4.java");
+		error(5);
+		//System.out.println(err);
+	}
+	
+	@Test
+	void testRefsFail5() {
+		// using this within a static method should fail
+		setupTest("../tests/pa3_selfmade/fail_refs5.java");
+		error(9);
+		//System.out.println(err);
+	}
 	
 }

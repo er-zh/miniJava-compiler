@@ -26,6 +26,7 @@ import miniJava.AbstractSyntaxTrees.IntLiteral;
 import miniJava.AbstractSyntaxTrees.IxAssignStmt;
 import miniJava.AbstractSyntaxTrees.IxExpr;
 import miniJava.AbstractSyntaxTrees.LiteralExpr;
+import miniJava.AbstractSyntaxTrees.MemberDecl;
 import miniJava.AbstractSyntaxTrees.MethodDecl;
 import miniJava.AbstractSyntaxTrees.MethodDeclList;
 import miniJava.AbstractSyntaxTrees.NewArrayExpr;
@@ -56,6 +57,8 @@ public class IdChecker implements Visitor<Object, Object>{
 	private ErrorReporter err;
 	//used for identfying instances of this
 	private ClassDecl currentClassDecl; 
+	// lets checker know when it is w/in static methods
+	private boolean isStaticContext; 
 	
 	public IdChecker(ErrorReporter reporter) {
 		err = reporter;
@@ -99,21 +102,24 @@ public class IdChecker implements Visitor<Object, Object>{
 		psmdl.add(new MethodDecl(new FieldDecl(false, false, new BaseType(TypeKind.VOID, predecl), 
 				"println", predecl),
 				printpl, new StatementList(), predecl));
+		ClassDecl ps = new ClassDecl("_PrintStream", new FieldDeclList(), psmdl, predecl);
 
 		// extra definitions for the out field of System
 		FieldDeclList Systemfdl = new FieldDeclList();
 		Identifier outTypeid = new Identifier(new Token(TokenType.ID, "_PrintStream"), predecl);
+		outTypeid.linkDecl(ps);
 		Systemfdl.add(new FieldDecl(false, true, new ClassType(outTypeid, predecl), "out", predecl));
 
 		
 		cdl.add(new ClassDecl("System", Systemfdl, new MethodDeclList(), predecl)); // predef'd System class
-		cdl.add(new ClassDecl("_PrintStream", new FieldDeclList(), psmdl, predecl)); // predef'd _PrintStream class
+		cdl.add(ps); // predef'd _PrintStream class
 		cdl.add(new ClassDecl("String", new FieldDeclList(), new MethodDeclList(), predecl)); // predef'd String class
 	}
 
 	@Override
 	public Object visitClassDecl(ClassDecl cd, Object arg) {
 		table.openScope(); // level 2 --- member names
+		isStaticContext = false;
 		
 		FieldDeclList fdl = cd.fieldDeclList;
 		MethodDeclList mdl = cd.methodDeclList;
@@ -123,6 +129,7 @@ public class IdChecker implements Visitor<Object, Object>{
 		
 		for(FieldDecl fd : fdl) fd.visit(this, null);
 		for(MethodDecl md : mdl) {
+			isStaticContext = md.isStatic;
 			md.visit(this, null);
 		}
 		
@@ -338,6 +345,11 @@ public class IdChecker implements Visitor<Object, Object>{
 
 	@Override
 	public Object visitThisRef(ThisRef ref, Object arg) {
+		if(isStaticContext) {
+			err.reportError(new SemanticError("cannot use \"this\" within a static context",
+					ref.posn, false));
+		}
+		
 		ref.linkDecl(currentClassDecl);
 		return null;
 	}
@@ -352,13 +364,23 @@ public class IdChecker implements Visitor<Object, Object>{
 	@Override
 	public Object visitQRef(QualRef ref, Object arg) {
 		ref.ref.visit(this, null);
+		
 		Declaration conDecl = ref.ref.getDecl();
+		//check for this or recursive class
+		boolean withinClass;
+
 		// the qualifier must be an instance of a class
-		// a().b or a[].b not allowed
-		// for a.b, a must be a var, param, or field
+		// since it has members that are being referenced
+		
+		// note a().b or a[].b not allowed
+		
+		// for a.b, if a is a var, param, or field
 		// then check their typeDenoter for the class type
+		// if there is no typeDenoter then a is a direct ref
+		// to a class
 		ClassDecl classdec = null;
-		if(conDecl.type == null) {
+		MemberDecl idDecl = null;
+		if(conDecl.type != null) {
 			try {
 				classdec = (ClassDecl)((ClassType)conDecl.type).className.getDecl();
 			}
@@ -367,19 +389,43 @@ public class IdChecker implements Visitor<Object, Object>{
 						ref.posn, false));
 				return null;
 			}
+			
+			withinClass = classdec.name.equals(currentClassDecl.name);
+			
+			idDecl = findMemberDecl(ref.id, classdec);
 		}
 		else { 
-			// conDecl.type is null meaing the controlling decl is already a class
-			// and not an instance
-			// thus this is an access to a static item
+			// conDecl.type is null meaing the controlling decl is already a class decl
+			// thus the qref is a direct reference to a class 
+			// 		qualified id must be static
+			// or is a "this" kw
+			// 		qualified id can be anything
+			try {
+			classdec = (ClassDecl) conDecl;
+			}
+			catch(ClassCastException cce) {
+				err.reportError(new SemanticError("identifier being dereferenced is not a valid class",
+						ref.posn, false));
+				return null;
+			}
+			
+			withinClass = classdec.name.equals(currentClassDecl.name);
+			
+			idDecl = findMemberDecl(ref.id, classdec);
+			if(!idDecl.isStatic && !withinClass) {
+				err.reportError(new SemanticError("cannot reference a non-static field", 
+						ref.posn, false));
+			}
 		}
 		
-		Declaration idDecl = findMemberDecl(ref.id, classdec);
+		if(idDecl.isPrivate && !withinClass) {
+			err.reportError(new SemanticError("cannot access a private field from outside of the declaring class",
+					ref.posn, false));
+		}
 		
 		// manually link the decl of the qualifying id
-		// since its decl, may not actually appear in the
-		// scoped id table at the scope where the id itself
-		// appears
+		// since its decl does not actually appear in the
+		// scoped id table at the scope where the qualifier appears
 		ref.id.linkDecl(idDecl);
 		
 		ref.linkDecl(idDecl);
@@ -387,7 +433,7 @@ public class IdChecker implements Visitor<Object, Object>{
 		return null;
 	}
 	
-	private Declaration findMemberDecl(Identifier id, ClassDecl classdec) {
+	private MemberDecl findMemberDecl(Identifier id, ClassDecl classdec) {
 		String idname = id.spelling;
 		
 		for(FieldDecl fd : classdec.fieldDeclList) {
@@ -414,6 +460,23 @@ public class IdChecker implements Visitor<Object, Object>{
 					id.posn, false));
 		}
 		else {
+			if(isStaticContext) {
+				// if within a static context, need to check if the memberDecl
+				// is static
+				
+				try {
+					MemberDecl cd = (MemberDecl) dec;
+					
+					if(!cd.isStatic) {
+						err.reportError(new SemanticError(id.spelling + " is a declared to be non-static and cannot be used in a static context",
+								id.posn, false));
+					}
+				}
+				catch(ClassCastException cce) {
+					// not a member decl --> local decl, thus does not need
+					// to be checked for static constraints
+				}
+			}
 			id.linkDecl(dec);
 		}
 		
