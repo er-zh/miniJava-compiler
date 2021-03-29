@@ -350,4 +350,12 @@ class IdentificationTests {
 		//System.out.println(err);
 	}
 	
+	@Test
+	void testControlStructPass() {
+		// test control structures like if and while
+		// also test some more complicated expressions
+		setupTest("../tests/pa3_selfmade/pass_control.java");
+		
+		pass();
+	}
 }
