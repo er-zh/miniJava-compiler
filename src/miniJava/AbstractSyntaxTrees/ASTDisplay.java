@@ -284,7 +284,7 @@ public class ASTDisplay implements Visitor<String,Object> {
     
     public Object visitCallExpr(CallExpr expr, String arg){
         show(arg, expr);
-        expr.functionRef.visit(this, indent(arg));
+        expr.methodRef.visit(this, indent(arg));
         ExprList al = expr.argList;
         show(arg,"  ExprList + [" + al.size() + "]");
         String pfx = arg + "  . ";

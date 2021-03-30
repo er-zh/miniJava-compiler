@@ -260,7 +260,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitCallStmt(CallStmt stmt, Object arg) {
-		TypeDenoter mrettype = stmt.methodRef.visit(this, null);
+		//TypeDenoter mrettype = stmt.methodRef.visit(this, null);
 		// this ref --> err
 		// id ref / qual ref --> need to check that whats being ref'd is a method
 		// need the types of its params as well

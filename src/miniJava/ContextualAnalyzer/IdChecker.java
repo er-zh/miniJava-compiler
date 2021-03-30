@@ -314,7 +314,7 @@ public class IdChecker implements Visitor<Object, Object>{
 
 	@Override
 	public Object visitCallExpr(CallExpr expr, Object argo) {
-		expr.functionRef.visit(this, null);
+		expr.methodRef.visit(this, null);
 		
 		ExprList args = expr.argList;
 		
