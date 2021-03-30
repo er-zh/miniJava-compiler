@@ -12,6 +12,9 @@ import miniJava.AbstractSyntaxTrees.CallStmt;
 import miniJava.AbstractSyntaxTrees.ClassDecl;
 import miniJava.AbstractSyntaxTrees.ClassDeclList;
 import miniJava.AbstractSyntaxTrees.ClassType;
+import miniJava.AbstractSyntaxTrees.Declaration;
+import miniJava.AbstractSyntaxTrees.ExprList;
+import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
 import miniJava.AbstractSyntaxTrees.FieldDeclList;
 import miniJava.AbstractSyntaxTrees.IdRef;
@@ -43,15 +46,22 @@ import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
+import miniJava.SyntacticAnalyzer.Token;
 
-public class TypeChecker implements Visitor<Object, TypeDenoter>{
-	
+public class TypeChecker implements Visitor<Object, TypeDenoter>{	
 	private ErrorReporter err;
-	private MethodDecl currentmd;
+	
+	// internal variables used for type checking inside of methods
+	// ensures that return types are consistent with method decls
+	private TypeDenoter currentmdtype;
+	private boolean requiresReturn;
+	private boolean methodReturns;
 	
 	public TypeChecker(ErrorReporter reporter) {
 		err = reporter;
-		currentmd = null;
+		currentmdtype = null;
+		requiresReturn = false;
+		methodReturns = false;
 	}
 	
 	private boolean checkEquals(TypeDenoter type1, TypeDenoter type2) {
@@ -87,7 +97,9 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 				ClassType c1 = (ClassType)type1;
 				ClassType c2 = (ClassType)type2;
 				
-				return c1.className.spelling.equals(c2.className.spelling);
+				// the null literal is applicable to any class type
+				boolean isNull = (c1.className.spelling.equals("null")) || (c2.className.spelling.equals("null"));
+				return c1.className.spelling.equals(c2.className.spelling) || isNull;
 			}
 			else if(t1 == TypeKind.ARRAY) {
 				ArrayType a1 = (ArrayType)type1;
@@ -139,9 +151,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 	public TypeDenoter visitMethodDecl(MethodDecl md, Object arg) {
 		// TODO does the existence of a return statement (when required)
 		// need to be checked for?
-		
-		boolean reStmt = false;
-		currentmd = md;
+		currentmdtype = md.type;
 		
 		// the parameter decls are also unvisited since they are like field decls
 		//ParameterDeclList pdl = md.parameterDeclList;
@@ -152,6 +162,8 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		for(Statement s : sl) {
 			s.visit(this, null);
 		}
+		
+		currentmdtype = null;
 		return null;
 	}
 
@@ -248,122 +260,269 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitCallStmt(CallStmt stmt, Object arg) {
-		// TODO Auto-generated method stub
+		TypeDenoter mrettype = stmt.methodRef.visit(this, null);
+		// this ref --> err
+		// id ref / qual ref --> need to check that whats being ref'd is a method
+		// need the types of its params as well
+		MethodDecl refdec;
+		try {
+			refdec = (MethodDecl)stmt.methodRef.getDecl();
+		}
+		catch(ClassCastException cce) {
+			err.reportError(new SemanticError("cannot call an identifier that does not refer to a method",
+					stmt.posn, true));
+			return null;
+		}
+		
+		ParameterDeclList pdl = refdec.parameterDeclList;
+		ExprList args = stmt.argList;
+		
+		if(pdl.size() != args.size()) {
+			err.reportError(new SemanticError("number of arguments supplied to the method is incorrect",
+					stmt.posn, true));
+			return null;
+		}
+		
+		for(int i = 0; i < pdl.size(); i++) {
+			if(!checkEquals(pdl.get(0).type, args.get(i).visit(this, null))) {
+				err.reportError(new SemanticError("arg " + (i+1) + " of method call does not match the expected type",
+						stmt.posn, true));
+				return null;
+			}
+		}
 		return null;
 	}
 
 	@Override
 	public TypeDenoter visitReturnStmt(ReturnStmt stmt, Object arg) {
-		// TODO Auto-generated method stub
+		if(stmt.returnExpr != null) {
+			if(!checkEquals(currentmdtype, stmt.returnExpr.visit(this, null))) {
+				err.reportError(new SemanticError("type of the return expression must match that of the declared "
+						+ "method type", stmt.posn, true));
+			}
+		}
+		else {
+			if(currentmdtype.typeKind != TypeKind.VOID) {
+					err.reportError(new SemanticError("return statement of a void method must not return a value",
+						stmt.posn, true));
+			}
+		}
 		return null;
 	}
 
 	@Override
 	public TypeDenoter visitIfStmt(IfStmt stmt, Object arg) {
-		// TODO Auto-generated method stub
+		TypeDenoter condtype = stmt.cond.visit(this, null);
+		
+		if(condtype.typeKind != TypeKind.BOOLEAN) {
+			err.reportError(new SemanticError("loop condition must evaluate to a boolean type", stmt.posn, true));
+			return new BaseType(TypeKind.ERROR, stmt.posn);
+		}
+		
+		stmt.thenStmt.visit(this, null);
+		
+		if(stmt.elseStmt != null) {
+			stmt.elseStmt.visit(this, null);
+		}
 		return null;
 	}
 
 	@Override
 	public TypeDenoter visitWhileStmt(WhileStmt stmt, Object arg) {
-		// TODO Auto-generated method stub
+		TypeDenoter condtype = stmt.cond.visit(this, null);
+		
+		if(condtype.typeKind != TypeKind.BOOLEAN) {
+			err.reportError(new SemanticError("loop condition must evaluate to a boolean type", stmt.posn, true));
+			return new BaseType(TypeKind.ERROR, stmt.posn);
+		}
+		
+		stmt.body.visit(this, null);
+		
 		return null;
 	}
 
 	@Override
 	public TypeDenoter visitUnaryExpr(UnaryExpr expr, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		TypeDenoter exptype = expr.expr.visit(this, null);
+		String rator = expr.operator.spelling;
+		if(rator.equals("-") && exptype.typeKind == TypeKind.INT
+				|| rator.equals("!") && exptype.typeKind == TypeKind.BOOLEAN) {
+			return exptype;
+		}
+		
+		err.reportError(new SemanticError(rator + " operator may not be applied to expressions "
+				+ "that are not of type " + (rator.equals("-")?"INT":"BOOLEAN"), expr.posn, true));
+		
+		return new BaseType(TypeKind.ERROR, expr.posn);
 	}
 
 	@Override
 	public TypeDenoter visitBinaryExpr(BinaryExpr expr, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		TypeDenoter lefttype = expr.left.visit(this, null);
+		TypeDenoter righttype = expr.right.visit(this, null);
+		String rator = expr.operator.spelling;
+		
+		switch(rator) {
+		case "+":
+		case "-":
+		case "*":
+		case "/":
+			if(lefttype.typeKind == TypeKind.INT && righttype.typeKind == TypeKind.INT) {
+				return lefttype;
+			}
+			break;
+		case "<=":
+		case "<":
+		case ">":
+		case ">=":
+			if(lefttype.typeKind == TypeKind.INT && righttype.typeKind == TypeKind.INT) {
+				return new BaseType(TypeKind.BOOLEAN, expr.posn);
+			}
+			break;
+		case "&&":
+		case "||":
+			if(lefttype.typeKind == TypeKind.BOOLEAN && righttype.typeKind == TypeKind.BOOLEAN) {
+				return lefttype;
+			}
+			break;
+		case "==":
+		case "!=":
+			if(checkEquals(lefttype, righttype)) {
+				return new BaseType(TypeKind.BOOLEAN, expr.posn);
+			}
+			break;
+		}
+		// either the types for left and right don't match
+		// or the rator string isn't matched
+		// i have no idea how the latter case could happen
+		
+		err.reportError(new SemanticError("left and right expression types of the binop do not match",
+				expr.posn, true));
+		
+		return new BaseType(TypeKind.ERROR, expr.posn);
 	}
 
 	@Override
 	public TypeDenoter visitRefExpr(RefExpr expr, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		return expr.ref.visit(this, null);
 	}
 
 	@Override
 	public TypeDenoter visitIxExpr(IxExpr expr, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		TypeDenoter arrtype = expr.ref.visit(this, null);
+		TypeDenoter ixtype = expr.ixExpr.visit(this, null);
+		
+		if(arrtype.typeKind != TypeKind.ARRAY) {
+			err.reportError(new SemanticError("cannot index a variable that is not an array",
+					expr.posn, true));
+			return new BaseType(TypeKind.ERROR, expr.posn);
+		}
+		
+		if(ixtype.typeKind != TypeKind.INT) {
+			err.reportError(new SemanticError("array indices must be integer values",
+					expr.posn, true));
+			return new BaseType(TypeKind.ERROR, expr.posn);
+		}
+		
+		return ((ArrayType)arrtype).eltType;
 	}
 
 	@Override
 	public TypeDenoter visitCallExpr(CallExpr expr, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		TypeDenoter mrettype = expr.methodRef.visit(this, null);
+		// this ref --> err
+		// id ref / qual ref --> need to check that whats being ref'd is a method
+		// need the types of its params as well
+		MethodDecl refdec;
+		try {
+			refdec = (MethodDecl)expr.methodRef.getDecl();
+		}
+		catch(ClassCastException cce) {
+			err.reportError(new SemanticError("cannot call an identifier that does not refer to a method",
+					expr.posn, true));
+			return new BaseType(TypeKind.ERROR, expr.posn);
+		}
+		
+		ParameterDeclList pdl = refdec.parameterDeclList;
+		ExprList args = expr.argList;
+		
+		if(pdl.size() != args.size()) {
+			err.reportError(new SemanticError("number of arguments supplied to the method is incorrect",
+					expr.posn, true));
+			return new BaseType(TypeKind.ERROR, expr.posn);
+		}
+		
+		for(int i = 0; i < pdl.size(); i++) {
+			if(!checkEquals(pdl.get(0).type, args.get(i).visit(this, null))) {
+				err.reportError(new SemanticError("arg " + (i+1) + " of method call does not match the expected type",
+						expr.posn, true));
+				return new BaseType(TypeKind.ERROR, expr.posn);
+			}
+		}
+		return mrettype;
 	}
 
 	@Override
 	public TypeDenoter visitLiteralExpr(LiteralExpr expr, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		return expr.lit.visit(this, null);
 	}
 
 	@Override
 	public TypeDenoter visitNewObjectExpr(NewObjectExpr expr, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		return expr.classtype;
 	}
 
 	@Override
 	public TypeDenoter visitNewArrayExpr(NewArrayExpr expr, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		TypeDenoter sizetype = expr.sizeExpr.visit(this, null);
+		
+		if(sizetype.typeKind != TypeKind.INT) {
+			err.reportError(new SemanticError("arrays must be defined with integer sizes", expr.posn, true));
+			return new BaseType(TypeKind.ERROR, expr.posn);
+		}
+		return expr.eltType;
 	}
 
 	@Override
 	public TypeDenoter visitThisRef(ThisRef ref, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		return ref.getDecl().type;
 	}
 
 	@Override
 	public TypeDenoter visitIdRef(IdRef ref, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		return ref.id.getDecl().type;
 	}
 
 	@Override
 	public TypeDenoter visitQRef(QualRef ref, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		return ref.id.getDecl().type;
 	}
 
 	@Override
 	public TypeDenoter visitIdentifier(Identifier id, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		return id.getDecl().type;
 	}
 
+	// unused
 	@Override
 	public TypeDenoter visitOperator(Operator op, Object arg) {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
 	public TypeDenoter visitIntLiteral(IntLiteral num, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		return new BaseType(TypeKind.INT, num.posn);
 	}
 
 	@Override
 	public TypeDenoter visitBooleanLiteral(BooleanLiteral bool, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		return new BaseType(TypeKind.BOOLEAN, bool.posn);
 	}
 
 	@Override
 	public TypeDenoter visitNullLiteral(NullLiteral nul, Object arg) {
-		// TODO Auto-generated method stub
-		return null;
+		Identifier nulllit = new Identifier(new Token(nul.kind, "null"), nul.posn);
+		return new ClassType(nulllit, nul.posn);
 	}
 
 }

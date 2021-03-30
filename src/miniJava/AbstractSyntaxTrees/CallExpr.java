@@ -8,12 +8,12 @@ package miniJava.AbstractSyntaxTrees;
 import miniJava.SourcePosition;
 
 public class CallExpr extends Expression {
-	public Reference functionRef;
+	public Reference methodRef;
 	public ExprList argList;
 
 	public CallExpr(Reference f, ExprList el, SourcePosition posn) {
 		super(posn);
-		functionRef = f;
+		methodRef = f;
 		argList = el;
 	}
 
