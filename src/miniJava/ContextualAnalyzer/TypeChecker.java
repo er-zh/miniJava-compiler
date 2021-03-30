@@ -1,6 +1,8 @@
 package miniJava.ContextualAnalyzer;
 
 import miniJava.ErrorReporter;
+import miniJava.SourcePosition;
+import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ArrayType;
 import miniJava.AbstractSyntaxTrees.AssignStmt;
 import miniJava.AbstractSyntaxTrees.BaseType;
@@ -12,11 +14,8 @@ import miniJava.AbstractSyntaxTrees.CallStmt;
 import miniJava.AbstractSyntaxTrees.ClassDecl;
 import miniJava.AbstractSyntaxTrees.ClassDeclList;
 import miniJava.AbstractSyntaxTrees.ClassType;
-import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.ExprList;
-import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
-import miniJava.AbstractSyntaxTrees.FieldDeclList;
 import miniJava.AbstractSyntaxTrees.IdRef;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IfStmt;
@@ -46,7 +45,6 @@ import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
-import miniJava.SyntacticAnalyzer.Token;
 
 public class TypeChecker implements Visitor<Object, TypeDenoter>{	
 	private ErrorReporter err;
@@ -54,17 +52,17 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 	// internal variables used for type checking inside of methods
 	// ensures that return types are consistent with method decls
 	private TypeDenoter currentmdtype;
-	private boolean requiresReturn;
-	private boolean methodReturns;
 	
 	public TypeChecker(ErrorReporter reporter) {
 		err = reporter;
 		currentmdtype = null;
-		requiresReturn = false;
-		methodReturns = false;
 	}
 	
-	private boolean checkEquals(TypeDenoter type1, TypeDenoter type2) {
+	public void check(AST ast) {// should not be called multiple times
+		ast.visit(this, null);
+	}
+	
+	private boolean checkEquals(TypeDenoter type1, TypeDenoter type2, SourcePosition checkposn) {
 		TypeKind t1 = type1.typeKind;
 		TypeKind t2 = type2.typeKind;
 		
@@ -72,21 +70,25 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 			return true;
 		}
 		else if(t1 == TypeKind.UNSUPPORTED) { 
-			err.reportError(new SemanticError("cannot reference unsupported type", type1.posn, true));
+			err.reportError(new SemanticError("cannot reference unsupported type", checkposn, true));
 			return false;
 		}
 		else if(t2 == TypeKind.UNSUPPORTED) {
-			err.reportError(new SemanticError("cannot reference unsupported type", type2.posn, true));
+			err.reportError(new SemanticError("cannot reference unsupported type", checkposn, true));
 			return false;
+		}
+		else if(t1 == TypeKind.NULL && t2 == TypeKind.CLASS
+				|| t2 == TypeKind.NULL && t1 == TypeKind.CLASS) {
+			return true;
 		}
 		else if(t1 == TypeKind.VOID) {
 			err.reportError(new SemanticError("expressions may not have void typing",
-					type1.posn, true));
+					checkposn, true));
 			return false;
 		}
 		else if(t2 == TypeKind.VOID) {
 			err.reportError(new SemanticError("expressions may not have void typing",
-					type2.posn, true));
+					checkposn, true));
 			return false;
 		}
 		else if(t1 != t2) {
@@ -97,15 +99,13 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 				ClassType c1 = (ClassType)type1;
 				ClassType c2 = (ClassType)type2;
 				
-				// the null literal is applicable to any class type
-				boolean isNull = (c1.className.spelling.equals("null")) || (c2.className.spelling.equals("null"));
-				return c1.className.spelling.equals(c2.className.spelling) || isNull;
+				return c1.className.spelling.equals(c2.className.spelling);
 			}
 			else if(t1 == TypeKind.ARRAY) {
 				ArrayType a1 = (ArrayType)type1;
 				ArrayType a2 = (ArrayType)type2;
 				
-				return checkEquals(a1.eltType, a2.eltType);
+				return checkEquals(a1.eltType, a2.eltType, checkposn);
 			}
 			else {
 				// types must be a base type of some kind
@@ -128,8 +128,8 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitClassDecl(ClassDecl cd, Object arg) {
-		// TODO don't need to check field Decls because they only
-		// consist of a type and an id
+		// don't need to check field Decls because they only consist of a 
+		// type and an id
 		//FieldDeclList fdl = cd.fieldDeclList;
 		MethodDeclList mdl = cd.methodDeclList;
 		
@@ -149,10 +149,10 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitMethodDecl(MethodDecl md, Object arg) {
-		// TODO does the existence of a return statement (when required)
-		// need to be checked for?
-		currentmdtype = md.type;
+		// TODO does a return statement exist when asked for?
 		
+		currentmdtype = md.type;
+				
 		// the parameter decls are also unvisited since they are like field decls
 		//ParameterDeclList pdl = md.parameterDeclList;
 		StatementList sl = md.statementList;
@@ -162,7 +162,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		for(Statement s : sl) {
 			s.visit(this, null);
 		}
-		
+
 		currentmdtype = null;
 		return null;
 	}
@@ -185,6 +185,9 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitClassType(ClassType type, Object arg) {
+		if(type.className.spelling.equals("String")) {
+			return new BaseType(TypeKind.UNSUPPORTED, type.posn);
+		}
 		return type;
 	}
 
@@ -208,7 +211,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		TypeDenoter vtype = stmt.varDecl.visit(this, null);
 		TypeDenoter exptype = stmt.initExp.visit(this, null);
 		
-		if(!checkEquals(vtype, exptype)) {
+		if(!checkEquals(vtype, exptype, stmt.posn)) {
 			err.reportError(new SemanticError("the type of the variable and the type of "
 					+ "its initializing expression do not agree",
 					stmt.posn, true));
@@ -221,7 +224,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		TypeDenoter vtype = stmt.ref.visit(this, null);
 		TypeDenoter valtype = stmt.val.visit(this, null);
 		
-		if(!checkEquals(vtype, valtype)) {
+		if(!checkEquals(vtype, valtype, stmt.posn)) {
 			err.reportError(new SemanticError("the type of the variable and the type of "
 					+ "the value assigned to it do not agree",
 					stmt.posn, true));
@@ -249,7 +252,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		
 		// this cast should be valid as a result of the first if check
 		ArrayType a = (ArrayType)arrtype;
-		if(!checkEquals(a.eltType, exptype)) {
+		if(!checkEquals(a.eltType, exptype, stmt.posn)) {
 			err.reportError(new SemanticError("the element type of the array and the type of "
 					+ "the value assigned to it do not agree",
 					stmt.posn, true));
@@ -284,7 +287,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		}
 		
 		for(int i = 0; i < pdl.size(); i++) {
-			if(!checkEquals(pdl.get(0).type, args.get(i).visit(this, null))) {
+			if(!checkEquals(pdl.get(0).type, args.get(i).visit(this, null), stmt.posn)) {
 				err.reportError(new SemanticError("arg " + (i+1) + " of method call does not match the expected type",
 						stmt.posn, true));
 				return null;
@@ -295,18 +298,19 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitReturnStmt(ReturnStmt stmt, Object arg) {
-		if(stmt.returnExpr != null) {
-			if(!checkEquals(currentmdtype, stmt.returnExpr.visit(this, null))) {
+		if(stmt.returnExpr == null) {
+			if(currentmdtype.typeKind != TypeKind.VOID) {
+				err.reportError(new SemanticError("return statement of a void method must not return a value",
+					stmt.posn, true));
+			}
+		}
+		else {
+			if(!checkEquals(currentmdtype, stmt.returnExpr.visit(this, null), stmt.posn)) {
 				err.reportError(new SemanticError("type of the return expression must match that of the declared "
 						+ "method type", stmt.posn, true));
 			}
 		}
-		else {
-			if(currentmdtype.typeKind != TypeKind.VOID) {
-					err.reportError(new SemanticError("return statement of a void method must not return a value",
-						stmt.posn, true));
-			}
-		}
+		
 		return null;
 	}
 
@@ -316,7 +320,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		
 		if(condtype.typeKind != TypeKind.BOOLEAN) {
 			err.reportError(new SemanticError("loop condition must evaluate to a boolean type", stmt.posn, true));
-			return new BaseType(TypeKind.ERROR, stmt.posn);
+			return null;
 		}
 		
 		stmt.thenStmt.visit(this, null);
@@ -387,7 +391,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 			break;
 		case "==":
 		case "!=":
-			if(checkEquals(lefttype, righttype)) {
+			if(checkEquals(lefttype, righttype, expr.posn)) {
 				return new BaseType(TypeKind.BOOLEAN, expr.posn);
 			}
 			break;
@@ -404,7 +408,15 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitRefExpr(RefExpr expr, Object arg) {
-		return expr.ref.visit(this, null);
+		TypeDenoter reftype = expr.ref.visit(this, null);
+		if(reftype.typeKind == TypeKind.UNSUPPORTED) {
+			err.reportError(new SemanticError("references may not be made to unsupported types",
+					expr.posn, true));
+			return new BaseType(TypeKind.UNSUPPORTED, expr.posn);
+		}
+		else {
+			return reftype;
+		}
 	}
 
 	@Override
@@ -424,7 +436,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 			return new BaseType(TypeKind.ERROR, expr.posn);
 		}
 		
-		return ((ArrayType)arrtype).eltType;
+		return ((ArrayType)arrtype).eltType.visit(this, null);
 	}
 
 	@Override
@@ -453,7 +465,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		}
 		
 		for(int i = 0; i < pdl.size(); i++) {
-			if(!checkEquals(pdl.get(0).type, args.get(i).visit(this, null))) {
+			if(!checkEquals(pdl.get(0).type, args.get(i).visit(this, null), args.get(i).posn)) {
 				err.reportError(new SemanticError("arg " + (i+1) + " of method call does not match the expected type",
 						expr.posn, true));
 				return new BaseType(TypeKind.ERROR, expr.posn);
@@ -469,7 +481,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitNewObjectExpr(NewObjectExpr expr, Object arg) {
-		return expr.classtype;
+		return expr.classtype.visit(this, null);
 	}
 
 	@Override
@@ -480,32 +492,32 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 			err.reportError(new SemanticError("arrays must be defined with integer sizes", expr.posn, true));
 			return new BaseType(TypeKind.ERROR, expr.posn);
 		}
-		return expr.eltType;
+		return expr.eltType.visit(this, null);
 	}
 
 	@Override
 	public TypeDenoter visitThisRef(ThisRef ref, Object arg) {
-		return ref.getDecl().type;
+		return ref.getDecl().type.visit(this, null);
 	}
 
 	@Override
 	public TypeDenoter visitIdRef(IdRef ref, Object arg) {
-		return ref.id.getDecl().type;
+		return ref.id.getDecl().type.visit(this, null);
 	}
 
 	@Override
 	public TypeDenoter visitQRef(QualRef ref, Object arg) {
-		return ref.id.getDecl().type;
+		return ref.id.getDecl().type.visit(this, null);
 	}
 
 	@Override
 	public TypeDenoter visitIdentifier(Identifier id, Object arg) {
-		return id.getDecl().type;
+		return id.getDecl().type.visit(this, null);
 	}
 
-	// unused
 	@Override
 	public TypeDenoter visitOperator(Operator op, Object arg) {
+		// unused
 		return null;
 	}
 
@@ -521,8 +533,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitNullLiteral(NullLiteral nul, Object arg) {
-		Identifier nulllit = new Identifier(new Token(nul.kind, "null"), nul.posn);
-		return new ClassType(nulllit, nul.posn);
+		return new BaseType(TypeKind.NULL, nul.posn);
 	}
 
 }
