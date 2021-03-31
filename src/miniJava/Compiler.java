@@ -6,6 +6,8 @@ import java.io.InputStream;
 
 import miniJava.AbstractSyntaxTrees.AST;
 import miniJava.AbstractSyntaxTrees.ASTDisplay;
+import miniJava.ContextualAnalyzer.IdChecker;
+import miniJava.ContextualAnalyzer.TypeChecker;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.Scanner;
 //import miniJava.SyntacticAnalyzer.Token;
@@ -15,14 +17,12 @@ public class Compiler {
 	
 	public static void main(String[] args) {
 		InputStream inputStream = null;
-		int rc = 0;
 		
 		try {
 			inputStream = new FileInputStream(args[0]);
 		} catch (FileNotFoundException e) {
 			System.out.println("Input file " + args[0] + " not found");
-			rc = 1;
-			System.exit(rc);
+			System.exit(1);
 		}
 		
 		ErrorReporter e = new ErrorReporter();
@@ -33,14 +33,27 @@ public class Compiler {
 		
 		if(e.hasErrors()) {
 			System.out.println(e.getErrorReport());
-			rc=4;
-		}
-		else {
-			ASTDisplay td = new ASTDisplay();
-			td.showTree(parseTree);
+			System.exit(4);
 		}
 		
-		System.exit(rc);
+		IdChecker ic = new IdChecker(e);
+		ic.check(parseTree);
+		
+		if(e.hasErrors()) {
+			System.out.println(e.getErrorReport());
+			System.exit(4);
+		}
+		
+		TypeChecker tc = new TypeChecker(e);
+		tc.check(parseTree);
+		
+		if(e.hasErrors()) {
+			System.out.println(e.getErrorReport());
+			System.exit(4);
+		}
+		
+		System.exit(0);
+		
 	}
 
 }
