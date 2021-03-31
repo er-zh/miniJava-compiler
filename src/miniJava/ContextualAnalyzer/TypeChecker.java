@@ -492,7 +492,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 			err.reportError(new SemanticError("arrays must be defined with integer sizes", expr.posn, true));
 			return new BaseType(TypeKind.ERROR, expr.posn);
 		}
-		return expr.eltType.visit(this, null);
+		return new ArrayType(expr.eltType.visit(this, null), expr.posn);
 	}
 
 	@Override

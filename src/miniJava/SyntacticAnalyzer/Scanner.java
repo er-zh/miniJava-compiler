@@ -241,7 +241,7 @@ public class Scanner {
 			
 			currentChar = (char) c;
 				
-			if(c == eolWindows || c == eolUnix) {
+			if(c == eolUnix) {
 				delayline = true;
 			}
 			

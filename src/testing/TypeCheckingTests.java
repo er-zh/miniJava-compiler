@@ -6,6 +6,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import miniJava.ErrorReporter;
@@ -86,6 +87,33 @@ class TypeCheckingTests {
 	@Test
 	void testPassVarDecls() {
 		setupTest("../tests/pa3_selfmade/types/pass1.java");
+		pass();
+	}
+	
+	@Test
+	@Disabled
+	void testPassNewArrayExprs() {
+		setupTest("../tests/pa3_selfmade/types/pass1.java");
+		
+		pass();
+	}
+	
+	
+	
+	
+	
+	
+	
+	@Test
+	void testPassComplicatedProg1() {
+		setupTest("../tests/pa1_selfmade/valid_qs.java");
+		pass();
+	}
+	
+	@Test
+	void testPassCompilcatedProg2() {
+		setupTest("../tests/pa1_selfmade/valid_nums.java");
+		System.out.println(err);
 		pass();
 	}
 
