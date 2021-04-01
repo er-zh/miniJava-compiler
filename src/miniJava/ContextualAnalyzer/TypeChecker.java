@@ -1,5 +1,7 @@
 package miniJava.ContextualAnalyzer;
 
+import java.util.Stack;
+
 import miniJava.ErrorReporter;
 import miniJava.SourcePosition;
 import miniJava.AbstractSyntaxTrees.AST;
@@ -146,12 +148,16 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		// unused
 		return null;
 	}
-
+	
+	private boolean promisesReturn;
+	private Stack<Boolean> doesReturn;
 	@Override
 	public TypeDenoter visitMethodDecl(MethodDecl md, Object arg) {
 		// TODO does a return statement exist when asked for?
 		
 		currentmdtype = md.type;
+		promisesReturn = currentmdtype.typeKind != TypeKind.VOID ? true : false;
+		doesReturn = new Stack<Boolean>();
 				
 		// the parameter decls are also unvisited since they are like field decls
 		//ParameterDeclList pdl = md.parameterDeclList;
@@ -161,6 +167,13 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		
 		for(Statement s : sl) {
 			s.visit(this, null);
+		}
+		
+		if(promisesReturn) {
+			if(doesReturn.isEmpty() || !doesReturn.peek()) {
+				err.reportError(new SemanticError("method is declared to return a value but does not always return a value", 
+					md.posn, true));
+			}
 		}
 
 		currentmdtype = null;
@@ -311,23 +324,37 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 			}
 		}
 		
+		doesReturn.push(true);
+		
 		return null;
 	}
 
 	@Override
 	public TypeDenoter visitIfStmt(IfStmt stmt, Object arg) {
 		TypeDenoter condtype = stmt.cond.visit(this, null);
+		boolean thenret, elret = false;
 		
 		if(condtype.typeKind != TypeKind.BOOLEAN) {
 			err.reportError(new SemanticError("loop condition must evaluate to a boolean type", stmt.posn, true));
 			return null;
 		}
 		
+		doesReturn.push(false);
 		stmt.thenStmt.visit(this, null);
+		thenret = doesReturn.peek();
+		while(doesReturn.pop()) {} // must eventually run into the false value that it pushed
 		
+		doesReturn.push(false);
 		if(stmt.elseStmt != null) {
 			stmt.elseStmt.visit(this, null);
 		}
+		elret = doesReturn.peek();
+		while(doesReturn.pop()) {}
+		
+		if(thenret && elret) {
+			doesReturn.push(true);
+		}
+		
 		return null;
 	}
 

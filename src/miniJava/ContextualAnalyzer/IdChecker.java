@@ -366,6 +366,12 @@ public class IdChecker implements Visitor<Object, Object>{
 		ref.ref.visit(this, null);
 		
 		Declaration conDecl = ref.ref.getDecl();
+		if(conDecl == null) {
+			err.reportError(new SemanticError("reference to erroneous declaration made",
+					ref.posn, false));
+			return null;
+		}
+		
 		//check for this or recursive class
 		boolean withinClass;
 

@@ -36,6 +36,9 @@ public class Compiler {
 			System.exit(4);
 		}
 		
+		//new ASTDisplay().showTree(parseTree);
+		
+		///*
 		IdChecker ic = new IdChecker(e);
 		ic.check(parseTree);
 		
@@ -51,6 +54,7 @@ public class Compiler {
 			System.out.println(e.getErrorReport());
 			System.exit(4);
 		}
+		//*/
 		
 		System.exit(0);
 		

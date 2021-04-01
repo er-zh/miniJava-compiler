@@ -37,23 +37,19 @@ class IdentificationTests {
 		ast = p.parse();
 		
 		ic = new IdChecker(err);
-	}
-	
-	void pass() {
+		
 		assertTrue(ast != null);
 		
 		ic.check(ast);
-		
-		assertTrue(err.hasErrors() == false);
+	}
+	
+	void pass() {		
+		assertTrue(!err.hasErrors());
 	}
 	
 	void error(int ln) {
 		
-		assertTrue(ast != null);
-		
-		ic.check(ast);
-		
-		assertTrue(err.hasErrors() == true);
+		assertTrue(err.hasErrors());
 		
 		assertEquals("*** line "+ln+":", err.getErrorReport().substring(0, 11));
 	}
@@ -192,6 +188,13 @@ class IdentificationTests {
 		// fails a method dec that has undeclared return type
 		setupTest("../tests/pa3_selfmade/fail_method_decs4.java");
 		error(2);
+	}
+	
+	@Test
+	void testMethodDeclFail5() {
+		// fails a method dec that has undeclared return type
+		setupTest("../tests/pa3_selfmade/fail_undeclared1.java");
+		error(9);
 	}
 	
 	@Test
@@ -358,4 +361,24 @@ class IdentificationTests {
 		
 		pass();
 	}
+	
+	
+	@Test
+	void testPassComplicatedProg1() {
+		setupTest("../tests/pa1_selfmade/valid_qs.java");
+		pass();
+	}
+	
+	@Test
+	void testPassCompilcatedProg2() {
+		setupTest("../tests/pa1_selfmade/valid_nums.java");
+		pass();
+	}
+	
+	@Test
+	void testFailComplicatedProg() {
+		setupTest("../tests/pa3_selfmade/fail_idk.java");
+		error(3);
+	}
 }
+
