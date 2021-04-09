@@ -47,17 +47,24 @@ import miniJava.AbstractSyntaxTrees.VarDecl;
 import miniJava.AbstractSyntaxTrees.VarDeclStmt;
 import miniJava.AbstractSyntaxTrees.Visitor;
 import miniJava.AbstractSyntaxTrees.WhileStmt;
+import miniJava.SyntacticAnalyzer.Token;
+import miniJava.SyntacticAnalyzer.TokenType;
 
 public class TypeChecker implements Visitor<Object, TypeDenoter>{	
 	private ErrorReporter err;
 	
+	// type denoter for visiting this refs
+	private ClassType currentct;
 	// internal variables used for type checking inside of methods
 	// ensures that return types are consistent with method decls
 	private TypeDenoter currentmdtype;
+	private boolean promisesReturn;
+	private Stack<Boolean> doesReturn;
 	
 	public TypeChecker(ErrorReporter reporter) {
 		err = reporter;
 		currentmdtype = null;
+		currentct = null;
 	}
 	
 	public void check(AST ast) {// should not be called multiple times
@@ -130,6 +137,10 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitClassDecl(ClassDecl cd, Object arg) {
+		Identifier cid = new Identifier(new Token(TokenType.ID, cd.name), cd.posn);
+		cid.linkDecl(cd);
+		currentct = new ClassType(cid, cd.posn);
+		
 		// don't need to check field Decls because they only consist of a 
 		// type and an id
 		//FieldDeclList fdl = cd.fieldDeclList;
@@ -149,8 +160,6 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		return null;
 	}
 	
-	private boolean promisesReturn;
-	private Stack<Boolean> doesReturn;
 	@Override
 	public TypeDenoter visitMethodDecl(MethodDecl md, Object arg) {
 		// TODO does a return statement exist when asked for?
@@ -524,10 +533,10 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitThisRef(ThisRef ref, Object arg) {
-		return ref.getDecl().type.visit(this, null);
+		return currentct;
 	}
 
-	@Override
+	@Override // TODO id type might not exist if id points to a class
 	public TypeDenoter visitIdRef(IdRef ref, Object arg) {
 		return ref.id.getDecl().type.visit(this, null);
 	}
