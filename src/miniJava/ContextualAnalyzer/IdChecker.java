@@ -388,7 +388,14 @@ public class IdChecker implements Visitor<Object, Object>{
 		MemberDecl idDecl = null;
 		if(conDecl.type != null) {
 			try {
-				classdec = (ClassDecl)((ClassType)conDecl.type).className.getDecl();
+				Identifier cti = ((ClassType)conDecl.type).className;
+				if(cti.getDecl() == null) {
+					// identifier has not yet been linked to its decl
+					// or it doesn't have one
+					cti.visit(this, null); // try to find its class decl
+				}
+				
+				classdec = (ClassDecl)cti.getDecl();
 			}
 			catch(ClassCastException cce) {
 				err.reportError(new SemanticError("identifier being dereferenced does not refer to an instance of a class",
@@ -469,7 +476,6 @@ public class IdChecker implements Visitor<Object, Object>{
 			if(isStaticContext) {
 				// if within a static context, need to check if the memberDecl
 				// is static
-				
 				try {
 					MemberDecl cd = (MemberDecl) dec;
 					
@@ -483,6 +489,7 @@ public class IdChecker implements Visitor<Object, Object>{
 					// to be checked for static constraints
 				}
 			}
+			
 			id.linkDecl(dec);
 		}
 		

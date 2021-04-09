@@ -5,7 +5,6 @@ import java.io.FileNotFoundException;
 import java.io.InputStream;
 
 import miniJava.AbstractSyntaxTrees.AST;
-import miniJava.AbstractSyntaxTrees.ASTDisplay;
 import miniJava.ContextualAnalyzer.IdChecker;
 import miniJava.ContextualAnalyzer.TypeChecker;
 import miniJava.SyntacticAnalyzer.Parser;
