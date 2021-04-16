@@ -22,12 +22,29 @@ public class IdTable {
 		err = reporter;
 	}
 	
-	public void enter(Declaration dec) throws SemanticError{
-		HashMap<String, SDecl> currentScope = table.peek();
+	public void enter(Declaration dec) {
+		checkEntry(dec);
+		
+		makeEntry(dec);
+	}
+	
+	// doesn't actually enforce the promise though
+	// exclusively for use by the visitVarDeclStmt
+	// function
+	public void promiseEnter(Declaration dec) {
+		checkEntry(dec);
+		
+		table.peek().remove(dec.name);
+	}
+	
+	// should only be run after promiseEnter
+	public void fulfillEnter(Declaration dec) {
+		makeEntry(dec);
+	}
+	
+	private void checkEntry(Declaration dec) {
 		String name = dec.name;
-		SDecl sd = new SDecl();
-		sd.scopelevel = level;
-		sd.decl = dec;
+		HashMap<String, SDecl> currentScope = table.peek();
 		
 		// check for identification errors
 		if(currentScope.containsKey(name)) {
@@ -49,8 +66,13 @@ public class IdTable {
 			}
 			
 		}
-		
-		currentScope.put(name, sd);
+	}
+	
+	private void makeEntry(Declaration dec) {
+		SDecl sd = new SDecl();
+		sd.scopelevel = level;
+		sd.decl = dec;
+		table.peek().put(dec.name, sd);
 	}
 
 	public Declaration retrieve(String name) {

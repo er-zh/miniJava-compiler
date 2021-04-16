@@ -233,12 +233,13 @@ public class IdChecker implements Visitor<Object, Object>{
 	public Object visitVardeclStmt(VarDeclStmt stmt, Object arg) {
 		VarDecl vd = stmt.varDecl;
 		
-		table.enter(vd);
+		table.promiseEnter(vd);
 		
 		vd.visit(this, null);
 		
 		stmt.initExp.visit(this, null);
 		
+		table.fulfillEnter(vd);
 		return null;
 	}
 
@@ -404,6 +405,10 @@ public class IdChecker implements Visitor<Object, Object>{
 			err.reportError(new SemanticError("reference to erroneous declaration made",
 					ref.posn, false));
 			return null;
+		}
+		else if(conDecl instanceof MethodDecl) {
+			err.reportError(new SemanticError("methods may not be used as qual refs in miniJava",
+					ref.posn, false));
 		}
 		
 		//check for this or recursive class
