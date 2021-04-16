@@ -194,10 +194,17 @@ public class IdChecker implements Visitor<Object, Object>{
 		// any name not predifined is parsed as a ClassType when used as a type
 		// this does not necessarily mean that the name refers to a class
 		if(!(type.className.getDecl() instanceof ClassDecl)) {
-			System.out.println(type.className.getDecl());
-			err.reportError(new SemanticError("\"" + type.className.spelling 
-					+ "\" is not a defined class", 
-					type.posn, false));
+			// check that the actual class isn't being shadowed
+			Declaration cd = table.retrieve("__"+type.className.spelling);
+			
+			if(cd instanceof ClassDecl) {
+				// class is being shadowed, need to link the correct decl now
+				type.className.linkDecl(cd);
+			}
+			else {
+				err.reportError(new SemanticError("\"" + type.className.spelling 
+						+ "\" is not a defined class", type.posn, false));
+			}
 		}
 		return null;
 	}
@@ -325,6 +332,11 @@ public class IdChecker implements Visitor<Object, Object>{
 	@Override
 	public Object visitRefExpr(RefExpr expr, Object arg) {
 		expr.ref.visit(this, null);
+		
+		if(expr.ref.getDecl() instanceof MethodDecl) {
+			err.reportError(new SemanticError("reference does not denote a variable, instead references a method", 
+					expr.posn, false));
+		}
 		return null;
 	}
 

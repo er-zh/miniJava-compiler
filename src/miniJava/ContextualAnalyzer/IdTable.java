@@ -42,6 +42,12 @@ public class IdTable {
 						+ "may not hide other local names or parameter names (level 3+)", 
 						dec.posn, false));
 			}
+			else if(shadowed.scopelevel == 1) {
+				// if a local name shadows a class name
+				// the class name should still be accessible as a type id
+				currentScope.put("__"+name, shadowed);
+			}
+			
 		}
 		
 		currentScope.put(name, sd);
@@ -52,6 +58,8 @@ public class IdTable {
 		if(sd == null) return null;
 		return sd.decl;
 	}
+	
+	
 	
 	public void openScope() {
 		if(table.isEmpty()) {
