@@ -538,7 +538,13 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override // TODO id type might not exist if id points to a class
 	public TypeDenoter visitIdRef(IdRef ref, Object arg) {
-		return ref.id.getDecl().type.visit(this, null);
+		try {
+			return ref.id.getDecl().type.visit(this, null);
+		}
+		catch(NullPointerException npe) {
+			err.reportError(new SemanticError("may not use class name as a value", ref.posn, true));
+			return new BaseType(TypeKind.ERROR, ref.posn);
+		}
 	}
 
 	@Override

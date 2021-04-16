@@ -171,6 +171,7 @@ public class IdChecker implements Visitor<Object, Object>{
 	@Override
 	public Object visitParameterDecl(ParameterDecl pd, Object arg) {
 		pd.type.visit(this, null);
+		
 		return null;
 	}
 
@@ -189,6 +190,15 @@ public class IdChecker implements Visitor<Object, Object>{
 	@Override
 	public Object visitClassType(ClassType type, Object arg) {
 		type.className.visit(this, null);
+		
+		// any name not predifined is parsed as a ClassType when used as a type
+		// this does not necessarily mean that the name refers to a class
+		if(!(type.className.getDecl() instanceof ClassDecl)) {
+			System.out.println(type.className.getDecl());
+			err.reportError(new SemanticError("\"" + type.className.spelling 
+					+ "\" is not a defined class", 
+					type.posn, false));
+		}
 		return null;
 	}
 
@@ -266,13 +276,15 @@ public class IdChecker implements Visitor<Object, Object>{
 	@Override
 	public Object visitIfStmt(IfStmt stmt, Object arg) {
 		stmt.cond.visit(this, null);
-		
+				
 		stmt.thenStmt.visit(this, null);
+		checkNotSingleVarDecl(stmt.thenStmt);
 		
 		Statement es = stmt.elseStmt;
 		
 		if(es != null) {
 			es.visit(this, null);
+			checkNotSingleVarDecl(es);
 		}
 		
 		return null;
@@ -283,7 +295,18 @@ public class IdChecker implements Visitor<Object, Object>{
 		stmt.cond.visit(this, null);
 		
 		stmt.body.visit(this, null);
+		
+		checkNotSingleVarDecl(stmt.body);
 		return null;
+	}
+	
+	private void checkNotSingleVarDecl(Statement stmt) {
+		if(stmt instanceof VarDeclStmt) {
+			err.reportError(new SemanticError("solitary variable declaration not allowed within a conditional statement", 
+					stmt.posn, false));
+		}
+		// TODO check if solitary decls in block statments also need to fail
+		//else if(stmt instanceof BlockStmt) {}
 	}
 
 	@Override
@@ -322,9 +345,8 @@ public class IdChecker implements Visitor<Object, Object>{
 		return null;
 	}
 	
-	// TODO figure out if this is used/necessary
-	// literals are predefined so they should be garuanteed
-	// to be valid
+	// literals are predefined so they are garuanteed to be valid
+	// if parsed properly
 	@Override
 	public Object visitLiteralExpr(LiteralExpr expr, Object arg) {
 		return null;
@@ -476,17 +498,13 @@ public class IdChecker implements Visitor<Object, Object>{
 			if(isStaticContext) {
 				// if within a static context, need to check if the memberDecl
 				// is static
-				try {
+				if(dec instanceof MemberDecl) {
 					MemberDecl cd = (MemberDecl) dec;
 					
 					if(!cd.isStatic) {
 						err.reportError(new SemanticError(id.spelling + " is a declared to be non-static and cannot be used in a static context",
 								id.posn, false));
 					}
-				}
-				catch(ClassCastException cce) {
-					// not a member decl --> local decl, thus does not need
-					// to be checked for static constraints
 				}
 			}
 			
