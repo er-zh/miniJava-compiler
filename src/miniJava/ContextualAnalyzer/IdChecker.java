@@ -437,7 +437,7 @@ public class IdChecker implements Visitor<Object, Object>{
 				return null;
 			}
 			
-			withinClass = classdec.name.equals(currentClassDecl.name);
+			
 			
 			idDecl = findMemberDecl(ref.id, classdec);
 		}
@@ -456,14 +456,13 @@ public class IdChecker implements Visitor<Object, Object>{
 				return null;
 			}
 			
-			withinClass = classdec.name.equals(currentClassDecl.name);
-			
 			idDecl = findMemberDecl(ref.id, classdec);
-			if(!idDecl.isStatic && !withinClass) {
+			if(!idDecl.isStatic && isStaticContext) {
 				err.reportError(new SemanticError("cannot reference a non-static field", 
 						ref.posn, false));
 			}
 		}
+		withinClass = classdec.name.equals(currentClassDecl.name);
 		
 		if(idDecl.isPrivate && !withinClass) {
 			err.reportError(new SemanticError("cannot access a private field from outside of the declaring class",
