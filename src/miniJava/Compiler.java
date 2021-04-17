@@ -13,6 +13,9 @@ import miniJava.SyntacticAnalyzer.Scanner;
 //import miniJava.SyntacticAnalyzer.TokenType;
 
 public class Compiler {
+	private static final int compilefail_code = 4;
+	private static final int filenotfound_code = 1;
+	private static final int success_code = 0;
 	
 	public static void main(String[] args) {
 		InputStream inputStream = null;
@@ -21,7 +24,7 @@ public class Compiler {
 			inputStream = new FileInputStream(args[0]);
 		} catch (FileNotFoundException e) {
 			System.out.println("Input file " + args[0] + " not found");
-			System.exit(1);
+			System.exit(filenotfound_code);
 		}
 		
 		ErrorReporter e = new ErrorReporter();
@@ -32,7 +35,7 @@ public class Compiler {
 		
 		if(e.hasErrors()) {
 			System.out.println(e.getErrorReport());
-			System.exit(4);
+			System.exit(compilefail_code);
 		}
 		
 		//new ASTDisplay().showTree(parseTree);
@@ -43,7 +46,11 @@ public class Compiler {
 		
 		if(e.hasErrors()) {
 			System.out.println(e.getErrorReport());
-			System.exit(4);
+			System.exit(compilefail_code);
+		}
+		else if(!ic.hasUniqueMain()) {
+			System.out.println("Error --> Program is missing a main method or has multiple main methods");
+			System.exit(compilefail_code);
 		}
 		
 		TypeChecker tc = new TypeChecker(e);
@@ -51,11 +58,11 @@ public class Compiler {
 		
 		if(e.hasErrors()) {
 			System.out.println(e.getErrorReport());
-			System.exit(4);
+			System.exit(compilefail_code);
 		}
 		//*/
 		
-		System.exit(0);
+		System.exit(success_code);
 		
 	}
 

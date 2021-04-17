@@ -143,7 +143,6 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		
 		// don't need to check field Decls because they only consist of a 
 		// type and an id
-		//FieldDeclList fdl = cd.fieldDeclList;
 		MethodDeclList mdl = cd.methodDeclList;
 		
 		//for(FieldDecl fd : fdl) fd.visit(this, null);

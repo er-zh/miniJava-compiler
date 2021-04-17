@@ -58,12 +58,20 @@ public class IdChecker implements Visitor<Object, Object>{
 	//used for identfying instances of this
 	private ClassDecl currentClassDecl; 
 	// lets checker know when it is w/in static methods
-	private boolean isStaticContext; 
+	private boolean isStaticContext;
+	private boolean hasMainFn;
+	private boolean uniqueMainFn;
 	
 	public IdChecker(ErrorReporter reporter) {
 		err = reporter;
 		table = new IdTable(err);
 		currentClassDecl = null;
+		hasMainFn = false;
+		uniqueMainFn = false;
+	}
+	
+	public boolean hasUniqueMain() {
+		return uniqueMainFn && hasMainFn;
 	}
 
 	public void check(AST ast) {// should not be called multiple times
@@ -145,7 +153,7 @@ public class IdChecker implements Visitor<Object, Object>{
 
 	@Override
 	public Object visitMethodDecl(MethodDecl md, Object arg) {
-		md.type.visit(this, null); // return type of the method
+		md.type.visit(this, null); // method's return type
 		
 		table.openScope(); // level 3 -- params
 		
@@ -154,9 +162,28 @@ public class IdChecker implements Visitor<Object, Object>{
 		
 		for(ParameterDecl pd : pdl) table.enter(pd);
 		
-		table.openScope(); // level 4 --- local method vars
-		
 		for(ParameterDecl pd : pdl) pd.visit(this, null);
+		
+		// check for the existence of a unique main function
+		if(md.name.equals("main")) {
+			boolean isVoid = md.type.typeKind == TypeKind.VOID;
+			
+			boolean hasStringArgs;
+			ParameterDecl pd = pdl.get(0);
+			
+			try {
+				hasStringArgs = ((ClassType) ((ArrayType) pd.type).eltType).className.spelling.equals("String");
+			} catch (ClassCastException cce) {
+				hasStringArgs = false;
+			}
+			
+			if(isVoid && hasStringArgs && !md.isPrivate && md.isStatic) {
+				uniqueMainFn = !hasMainFn;
+				hasMainFn = true;
+			}
+		}
+		
+		table.openScope(); // level 4 --- local method vars
 		
 		for(Statement s : sl) {
 			s.visit(this, null);
