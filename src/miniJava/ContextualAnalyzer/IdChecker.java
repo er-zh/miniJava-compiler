@@ -61,6 +61,7 @@ public class IdChecker implements Visitor<Object, Object>{
 	private boolean isStaticContext;
 	private boolean hasMainFn;
 	private boolean uniqueMainFn;
+	private String mainClassName;
 	
 	public IdChecker(ErrorReporter reporter) {
 		err = reporter;
@@ -68,14 +69,19 @@ public class IdChecker implements Visitor<Object, Object>{
 		currentClassDecl = null;
 		hasMainFn = false;
 		uniqueMainFn = false;
+		mainClassName = "";
+	}
+
+	public void check(AST ast) {// should not be called multiple times
+		ast.visit(this, null);
 	}
 	
 	public boolean hasUniqueMain() {
 		return uniqueMainFn && hasMainFn;
 	}
-
-	public void check(AST ast) {// should not be called multiple times
-		ast.visit(this, null);
+	
+	public String mainClass() {
+		return mainClassName;
 	}
 	
 	@Override
@@ -180,6 +186,10 @@ public class IdChecker implements Visitor<Object, Object>{
 			if(isVoid && hasStringArgs && !md.isPrivate && md.isStatic) {
 				uniqueMainFn = !hasMainFn;
 				hasMainFn = true;
+				
+				if(uniqueMainFn) {
+					mainClassName = currentClassDecl.name;
+				}
 			}
 		}
 		

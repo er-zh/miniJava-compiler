@@ -5,19 +5,23 @@
  */
 package miniJava.AbstractSyntaxTrees;
 
-import java.util.*;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.Collections;
 
-public class ClassDeclList implements Iterable<ClassDecl>
-{
+public class ClassDeclList implements Iterable<ClassDecl> {
+	private List<ClassDecl> classDeclList;
+
 	public ClassDeclList() {
 		classDeclList = new ArrayList<ClassDecl>();
-	}   
+	}
 
-	public void add(ClassDecl cd){
+	public void add(ClassDecl cd) {
 		classDeclList.add(cd);
 	}
 
-	public ClassDecl get(int i){
+	public ClassDecl get(int i) {
 		return classDeclList.get(i);
 	}
 
@@ -28,7 +32,8 @@ public class ClassDeclList implements Iterable<ClassDecl>
 	public Iterator<ClassDecl> iterator() {
 		return classDeclList.iterator();
 	}
-
-	private List<ClassDecl> classDeclList;
+	
+	public void swapToFront(int idx) {
+		Collections.swap(classDeclList, idx, 0);
+	}
 }
-
