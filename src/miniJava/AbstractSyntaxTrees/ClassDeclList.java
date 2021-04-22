@@ -8,7 +8,6 @@ package miniJava.AbstractSyntaxTrees;
 import java.util.List;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.Collections;
 
 public class ClassDeclList implements Iterable<ClassDecl> {
 	private List<ClassDecl> classDeclList;
@@ -33,7 +32,4 @@ public class ClassDeclList implements Iterable<ClassDecl> {
 		return classDeclList.iterator();
 	}
 	
-	public void swapToFront(int idx) {
-		Collections.swap(classDeclList, idx, 0);
-	}
 }
