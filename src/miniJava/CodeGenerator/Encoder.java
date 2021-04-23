@@ -151,6 +151,9 @@ public class Encoder implements Visitor<Integer, Integer>{
 			staticSeg += fieldsize;
 			
 			fieldsize = 0;
+			
+			// exception is _PrintStream out static field of System
+			// it has size 0 and can have its representation reside within static memory
 		}
 		else {
 			fd.setRED(new Field(fieldsize, offset));
@@ -179,7 +182,7 @@ public class Encoder implements Visitor<Integer, Integer>{
 		
 		// special instructions for predefined println method
 		if(currentcd.name.equals("_PrintStream") && md.name.equals("println")) {
-			Machine.emit(Op.LOADL, Reg.LB, -1);
+			Machine.emit(Op.LOAD, Reg.LB, -1);
 			Machine.emit(Prim.putintnl);
 			Machine.emit(Op.RETURN, 0, 0, 1);
 		}
@@ -203,6 +206,10 @@ public class Encoder implements Visitor<Integer, Integer>{
 					&& !(md.statementList.get(md.statementList.size()-1) instanceof ReturnStmt)) {
 				Machine.emit(Op.RETURN, 0, 0, nArgs);
 			}
+		}
+		
+		if(md.getRED() != null) {
+			((UnknownRoutine)md.getRED()).patchUnknownCalls(codeStartAddr);
 		}
 		
 		md.setRED(new KnownRoutine(frame, codeStartAddr));
@@ -280,8 +287,10 @@ public class Encoder implements Visitor<Integer, Integer>{
 		
 		// evaluate the initializing expression 
 		// result should be left on top of the stack
+		// at the same location specified by the var RED
 		stmt.initExp.visit(this, arg);
 		
+		/*
 		// store the result of the expression inside of the variable
 		RuntimeEntityDescriptor red = stmt.varDecl.getRED();
 		if(red instanceof UnknownValue) {
@@ -289,7 +298,7 @@ public class Encoder implements Visitor<Integer, Integer>{
 		}
 		else {
 			Machine.emit(Op.STORE, Reg.LB, ((UnknownAddress)red).offset);
-		}
+		}*/
 		
 		return varsize;
 	}
@@ -297,6 +306,21 @@ public class Encoder implements Visitor<Integer, Integer>{
 	private void refVisitHelper(Reference ref, Integer arg) {
 		implicitthis = true;
 		ref.visit(this, arg);
+	}
+	
+	private void getRefVal(Declaration dec) {
+		RuntimeEntityDescriptor red = dec.getRED();
+		if(red instanceof Field) {
+			if(((FieldDecl)dec).isStatic) {
+				//Machine.emit(Op.LOADI);
+			}
+			else {
+				Machine.emit(Prim.fieldref);
+			}
+		}
+		else if(!(red instanceof KnownValue)) {
+			Machine.emit(Op.LOADI);
+		}
 	}
 	
 	@Override
@@ -322,20 +346,11 @@ public class Encoder implements Visitor<Integer, Integer>{
 		return null;
 	}
 	
-	private void getRefVal(RuntimeEntityDescriptor red) {
-		if(red instanceof Field) {
-			Machine.emit(Prim.fieldref);
-		}
-		else if(red instanceof UnknownAddress) {
-			Machine.emit(Op.LOADI);
-		}
-	}
-	
 	@Override
 	public Integer visitIxAssignStmt(IxAssignStmt stmt, Integer arg) {
 		refVisitHelper(stmt.ref, arg);
 		
-		getRefVal(stmt.ref.getDecl().getRED());
+		getRefVal(stmt.ref.getDecl());
 		
 		stmt.ix.visit(this, arg);
 		
@@ -376,13 +391,25 @@ public class Encoder implements Visitor<Integer, Integer>{
 
 	@Override
 	public Integer visitIfStmt(IfStmt stmt, Integer arg) {
+		int condjump, elsejump, then, endstmt;
 		stmt.cond.visit(this, arg);
 		
+		condjump = Machine.nextInstrAddr();
+		Machine.emit(Op.JUMPIF, Machine.trueRep, Reg.CB, -1);
+		
+		elsejump = -1;
 		if(stmt.elseStmt != null) {
 			stmt.elseStmt.visit(this, arg);
+			elsejump = Machine.nextInstrAddr();
+			Machine.emit(Op.JUMP, Reg.CB, -1);
 		}
 		
+		then = Machine.nextInstrAddr();
 		stmt.thenStmt.visit(this, arg);
+		
+		endstmt = Machine.nextInstrAddr();
+		Machine.patch(condjump, then);
+		if(elsejump != -1) Machine.patch(elsejump, endstmt);
 		
 		return null;
 	}
@@ -424,12 +451,12 @@ public class Encoder implements Visitor<Integer, Integer>{
 		expr.left.visit(this, arg);
 		expr.right.visit(this, arg);
 		
-		switch(expr.operator.spelling) {
-		// equals and not equals operators require an extra size argument
-		case "==":
-		case "!=":
-			Machine.emit(Op.LOADL, 1);
-		}
+//		switch(expr.operator.spelling) {
+//		// equals and not equals operators require an extra size argument
+//		case "==":
+//		case "!=":
+//			Machine.emit(Op.LOADL, 1);
+//		}
 		
 		expr.operator.visit(this, arg);
 		
@@ -442,7 +469,7 @@ public class Encoder implements Visitor<Integer, Integer>{
 		// at stack top
 		refVisitHelper(expr.ref, arg);
 		
-		getRefVal(expr.ref.getDecl().getRED());
+		getRefVal(expr.ref.getDecl());
 		
 		return null;
 	}
@@ -451,7 +478,7 @@ public class Encoder implements Visitor<Integer, Integer>{
 	public Integer visitIxExpr(IxExpr expr, Integer arg) {
 		refVisitHelper(expr.ref, arg);
 		
-		getRefVal(expr.ref.getDecl().getRED());
+		getRefVal(expr.ref.getDecl());
 		
 		expr.ixExpr.visit(this, arg);
 		
@@ -517,7 +544,7 @@ public class Encoder implements Visitor<Integer, Integer>{
 	public Integer visitQRef(QualRef ref, Integer arg) {
 		refVisitHelper(ref.ref, arg);
 		
-		getRefVal(ref.ref.getDecl().getRED());
+		getRefVal(ref.ref.getDecl());
 		
 		ref.id.visit(this, arg);
 		return null;
@@ -537,6 +564,7 @@ public class Encoder implements Visitor<Integer, Integer>{
 		
 		if(red instanceof Field) {
 			disp = ((Field)red).offset;
+			
 			if(((FieldDecl)dec).isStatic) {
 				relTo = Reg.SB;
 				
@@ -578,6 +606,38 @@ public class Encoder implements Visitor<Integer, Integer>{
 				Machine.emit(Op.CALL, relTo, disp);
 			}
 			
+		}// code for called method not yet generated
+		else if(red == null && dec instanceof MethodDecl) { 
+			relTo = Reg.CB;
+			disp = -1;
+			int patchaddr = Machine.nextInstrAddr();
+			
+			if(!((MethodDecl)dec).isStatic) { // non-static method call
+				Machine.emit(Op.CALLI, relTo, disp);
+			}
+			else { // static method call
+				Machine.emit(Op.CALL, relTo, disp);
+			}
+			
+			UnknownRoutine mred = new UnknownRoutine(-1);
+			
+			mred.patchCalls.push(patchaddr);
+			
+			dec.setRED(mred);
+		}
+		else if(red instanceof UnknownRoutine) {
+			relTo = Reg.CB;
+			disp = -1;
+			int patchaddr = Machine.nextInstrAddr();
+			
+			if(!((MethodDecl)dec).isStatic) { // non-static method call
+				Machine.emit(Op.CALLI, relTo, disp);
+			}
+			else { // static method call
+				Machine.emit(Op.CALL, relTo, disp);
+			}
+			
+			((UnknownRoutine)red).patchCalls.push(patchaddr);
 		}
 		//else if(red instanceof KnownValue) {}
 			// this RED is only being used for classes atm

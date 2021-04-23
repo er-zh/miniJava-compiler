@@ -1,10 +1,20 @@
 package miniJava.CodeGenerator;
 
-public class UnknownRoutine extends RuntimeEntityDescriptor {
+import java.util.Stack;
 
+import mJAM.Machine;
+
+public class UnknownRoutine extends RuntimeEntityDescriptor {
+	public Stack<Integer> patchCalls;
+	
 	public UnknownRoutine(int size) {
 		super(size);
-		// TODO Auto-generated constructor stub
+		patchCalls = new Stack<Integer>();
 	}
-
+	
+	public void patchUnknownCalls(int codeaddr) {
+		while(!patchCalls.isEmpty()) {
+			Machine.patch(patchCalls.pop(), codeaddr);
+		}
+	}
 }
