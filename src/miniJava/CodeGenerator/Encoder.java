@@ -32,6 +32,7 @@ import miniJava.AbstractSyntaxTrees.Package;
 import miniJava.AbstractSyntaxTrees.ParameterDecl;
 import miniJava.AbstractSyntaxTrees.QualRef;
 import miniJava.AbstractSyntaxTrees.RefExpr;
+import miniJava.AbstractSyntaxTrees.Reference;
 import miniJava.AbstractSyntaxTrees.ReturnStmt;
 import miniJava.AbstractSyntaxTrees.Statement;
 import miniJava.AbstractSyntaxTrees.ThisRef;
@@ -49,10 +50,18 @@ import mJAM.Machine.Reg;
 
 public class Encoder implements Visitor<Integer, Integer>{	
 	private String startClass;
-	private int patch_main_call_addr;
 	private int main_code_addr;
 	private int staticSeg;
 	private ClassDecl currentcd;
+	private int offset;
+	
+	// used set to true prior to any ref visit
+	// this way, if an unqualified field identifier is visited
+	// it knows to reference the OB directly, rather than expecting
+	// a heap address value to be already preplaced onto the stack
+	// for it to use
+	private boolean implicitthis;
+	
 	
 	public Encoder(String mainClassName) {
 		Machine.initCodeGen();
@@ -64,16 +73,24 @@ public class Encoder implements Visitor<Integer, Integer>{
 	
 	public void encode(AST dectree) {
 		// prior to generating any code
-		// emit preamble code for running the main method
+		// emit preamble code for starting the program
+		
+		// set up the static segment of the stack
+		int patch_static_seg = Machine.nextInstrAddr();
+		Machine.emit(Op.PUSH, 0); 
+		
+		// set up call to main
 		Machine.emit(Op.LOADL,0);            // array length 0
 		Machine.emit(Prim.newarr);           // empty String array argument
-		patch_main_call_addr = Machine.nextInstrAddr();  // record instr addr where main is called                                                
+		int patch_main_call_addr = Machine.nextInstrAddr();  // record instr addr where main is called                                                
 		Machine.emit(Op.CALL,Reg.CB,-1);     // static call main (address to be patched)
 		Machine.emit(Op.HALT,0,0,0);         // end execution
 		
+		// generate code for the other methods
 		dectree.visit(this, null); 
 		
 		Machine.patch(patch_main_call_addr, main_code_addr);
+		Machine.patch(patch_static_seg, staticSeg);
 	}
 	
 	// implementation of visitor methods
@@ -84,6 +101,21 @@ public class Encoder implements Visitor<Integer, Integer>{
 	public Integer visitPackage(Package prog, Integer arg) {
 		ClassDeclList cldl = prog.classDeclList;
 		
+		// attach REDs to each class decl before generating
+		// mJAM code for methods
+		for(ClassDecl cd : cldl) {
+			FieldDeclList fdl = cd.fieldDeclList;
+			int classSize = 0; // == # of nonstatic fields on a class
+			
+			for(FieldDecl fd : fdl) {
+				offset = classSize;
+				classSize += fd.visit(this, arg);
+			}
+			
+			// TODO maybe use a more appropriate RED
+			cd.setRED(new KnownValue(classSize, -3)); 
+		}
+		
 		for(ClassDecl cd : cldl) {
 			cd.visit(this, null);
 		}
@@ -91,34 +123,22 @@ public class Encoder implements Visitor<Integer, Integer>{
 		return null;
 	}
 	
-	private int offset;
 	@Override
 	public Integer visitClassDecl(ClassDecl cd, Integer arg) {
 		currentcd = cd;
 		
-		FieldDeclList fdl = cd.fieldDeclList;
 		MethodDeclList mdl = cd.methodDeclList;
-		int classSize = 0; // == # of nonstatic fields on a class
-		
-		for(FieldDecl fd : fdl) {
-			offset = classSize;
-			classSize += fd.visit(this, arg);
-		}
-		offset = 0;
-		
-		// TODO class's value is mostly meaningless i think???
-		// is KnownValue even the correct RED to attach to a class???
-		cd.setRED(new KnownValue(classSize, -3)); 
 		
 		for(MethodDecl md : mdl) md.visit(this, arg);
 		
-		return classSize;
+		return cd.getRED().size;
 	}
 
 	@Override
-	// arg recieved is the current size of the class
-	// used to find the displacement for the value on the heap
 	public Integer visitFieldDecl(FieldDecl fd, Integer arg) {
+		// arg recieved is the current size of the class
+		// used to find the displacement for the value on the heap
+		
 		// regardless of the type of the field, the field size should be 1
 		// since it is either a base value or an int address 
 		// both have size of 1 word
@@ -150,30 +170,39 @@ public class Encoder implements Visitor<Integer, Integer>{
 		int frame = Machine.linkDataSize;
 		nArgs = md.parameterDeclList.size();
 		
-		main_code_addr = currentcd.name.equals(startClass) && md.name.equals("main") ? codeStartAddr : main_code_addr;
+		if(currentcd.name.equals(startClass) && md.name.equals("main")) main_code_addr = codeStartAddr;
 		
 		for(int i = 0; i < nArgs; i++) {
 			offset = -(i + 1);
 			md.parameterDeclList.get(i).visit(this, frame);
 		}
 		
-		for(Statement s : md.statementList) {
-			if(s instanceof VarDeclStmt) {
-				frame += s.visit(this, frame);
-			}
-			else {
-				s.visit(this, frame);
-			}
+		// special instructions for predefined println method
+		if(currentcd.name.equals("_PrintStream") && md.name.equals("println")) {
+			Machine.emit(Op.LOADL, Reg.LB, -1);
+			Machine.emit(Prim.putintnl);
+			Machine.emit(Op.RETURN, 0, 0, 1);
 		}
-		
-		// if the method's return type is void, add an extra final return statement
-		// if the last statement of the method body is not already a return statement
-		// might still be redundant, but just in case
-		// its ok if this is extra, because only on return statement is called per method
-		// invocation, no danger of popping too many values from the stack
-		if(md.type.typeKind == TypeKind.VOID 
-				&& !(md.statementList.get(md.statementList.size()-1) instanceof ReturnStmt)) {
-			Machine.emit(Op.RETURN, 0, 0, nArgs);
+		else {
+			// for normal methods just visit the instructions directly
+			for(Statement s : md.statementList) {
+				if(s instanceof VarDeclStmt) {
+					frame += s.visit(this, frame);
+				}
+				else {
+					s.visit(this, frame);
+				}
+			}
+			
+			// if the method's return type is void, add an extra final return statement
+			// if the last statement of the method body is not already a return statement
+			// might still be redundant, but just in case
+			// its ok if this is extra, because only on return statement is called per method
+			// invocation, no danger of popping too many values from the stack
+			if(md.type.typeKind == TypeKind.VOID 
+					&& !(md.statementList.get(md.statementList.size()-1) instanceof ReturnStmt)) {
+				Machine.emit(Op.RETURN, 0, 0, nArgs);
+			}
 		}
 		
 		md.setRED(new KnownRoutine(frame, codeStartAddr));
@@ -226,11 +255,22 @@ public class Encoder implements Visitor<Integer, Integer>{
 
 	@Override
 	public Integer visitBlockStmt(BlockStmt stmt, Integer arg) {
-		// TODO ensure values declared within the block statement
-		// fall out of scope afterwards
+		int block = 0;
+		
 		for(Statement s : stmt.sl) {
-			s.visit(this, null);
+			if(s instanceof VarDeclStmt) {
+				 block += s.visit(this, arg + block);
+			}
+			else {
+				s.visit(this, arg + block);
+			}
 		}
+		
+		// values declared within the block statement need to fall
+		// out of scope after leaving the block
+		// pop any var decls from the stack to clean up the frame
+		Machine.emit(Op.POP, block);
+		
 		return null;
 	}
 
@@ -243,32 +283,59 @@ public class Encoder implements Visitor<Integer, Integer>{
 		stmt.initExp.visit(this, arg);
 		
 		// store the result of the expression inside of the variable
-		UnknownValue lv = (UnknownValue)stmt.varDecl.getRED();
-		Machine.emit(Op.STORE, Reg.LB, lv.offset);
+		RuntimeEntityDescriptor red = stmt.varDecl.getRED();
+		if(red instanceof UnknownValue) {
+			Machine.emit(Op.STORE, Reg.LB, ((UnknownValue)red).offset);
+		}
+		else {
+			Machine.emit(Op.STORE, Reg.LB, ((UnknownAddress)red).offset);
+		}
 		
 		return varsize;
 	}
-
+	
+	private void refVisitHelper(Reference ref, Integer arg) {
+		implicitthis = true;
+		ref.visit(this, arg);
+	}
+	
 	@Override
 	public Integer visitAssignStmt(AssignStmt stmt, Integer arg) {
-		// eval the value expr
-		// result at stack top
-		stmt.val.visit(this, arg);
-		
-		// known to be local variable, param, or field by contextual analysis
-		stmt.ref.visit(this, arg);
-
-		// TODO may need to do something more special for fields
-		// now address of var being assigned to is at stack top with
-		// the value right below it	
-		Machine.emit(Op.STOREI);
-		
+		if(stmt.ref.getDecl() instanceof FieldDecl) { // field
+			refVisitHelper(stmt.ref, arg);
+			
+			stmt.val.visit(this, arg);
+			
+			Machine.emit(Prim.fieldupd);
+		}
+		else { // local var or param
+			// eval the value expr
+			// result at stack top
+			stmt.val.visit(this, arg);
+			
+			refVisitHelper(stmt.ref, arg);
+	
+			// now address of var being assigned to is at stack top with
+			// the value right below it	
+			Machine.emit(Op.STOREI);
+		}
 		return null;
+	}
+	
+	private void getRefVal(RuntimeEntityDescriptor red) {
+		if(red instanceof Field) {
+			Machine.emit(Prim.fieldref);
+		}
+		else if(red instanceof UnknownAddress) {
+			Machine.emit(Op.LOADI);
+		}
 	}
 	
 	@Override
 	public Integer visitIxAssignStmt(IxAssignStmt stmt, Integer arg) {
-		stmt.ref.visit(this, arg);
+		refVisitHelper(stmt.ref, arg);
+		
+		getRefVal(stmt.ref.getDecl().getRED());
 		
 		stmt.ix.visit(this, arg);
 		
@@ -283,24 +350,11 @@ public class Encoder implements Visitor<Integer, Integer>{
 		// args are pushed onto the stack in reverse order
 		for(int i = stmt.argList.size()-1; i > -1; i--) {
 			stmt.argList.get(i).visit(this, arg);
-		}
-		
-		// need to figure out if the method is static or not ahead of time
-		// to push an instance address if necessary
-		if(!((MethodDecl)stmt.methodRef.getDecl()).isStatic) {
-			// methodRef can only be a qualref or idref
-			if(stmt.methodRef instanceof QualRef) {
-				((QualRef)stmt.methodRef).ref.visit(this, arg);
-			}
-			else {
-				// implicit this is needed
-				Machine.emit(Op.LOADA, Reg.OB, 0);
-			}
-		}
+		}		
 		
 		// this method does not actually issue the call opcode
 		// done so indirectly by visiting method ref
-		stmt.methodRef.visit(this, arg);
+		refVisitHelper(stmt.methodRef, arg);
 		
 		// return value of the call, if any, should be disregarded
 		
@@ -386,15 +440,18 @@ public class Encoder implements Visitor<Integer, Integer>{
 	public Integer visitRefExpr(RefExpr expr, Integer arg) {
 		// ref visit should leave the correct address for the data
 		// at stack top
-		expr.ref.visit(this, arg);
+		refVisitHelper(expr.ref, arg);
 		
-		Machine.emit(Op.LOADI);
+		getRefVal(expr.ref.getDecl().getRED());
+		
 		return null;
 	}
 
 	@Override
 	public Integer visitIxExpr(IxExpr expr, Integer arg) {
-		expr.ref.visit(this, arg);
+		refVisitHelper(expr.ref, arg);
+		
+		getRefVal(expr.ref.getDecl().getRED());
 		
 		expr.ixExpr.visit(this, arg);
 		
@@ -404,31 +461,14 @@ public class Encoder implements Visitor<Integer, Integer>{
 
 	@Override
 	public Integer visitCallExpr(CallExpr expr, Integer arg) {
-		// this method does not actually issue the call opcode
-		// instead issues it indirectly by visiting method ref
-		
 		// args are pushed onto the stack in reverse order
 		for(int i = expr.argList.size()-1; i > -1; i--) {
 			expr.argList.get(i).visit(this, arg);
 		}
 		
-		// need to figure out if the method is static or not ahead of time
-		// to push an instance address if necessary
-		if (!((MethodDecl) expr.methodRef.getDecl()).isStatic) {
-			// methodRef can only be a qualref or idref
-			if (expr.methodRef instanceof QualRef) {
-				// visit the qualifiying ref and qualified id ref separately
-				((QualRef)expr.methodRef).ref.visit(this, arg);
-				
-				((QualRef)expr.methodRef).id.visit(this, arg);
-			} 
-			else {
-				// implicit this is needed
-				Machine.emit(Op.LOADA, Reg.OB, 0);
-				
-				expr.methodRef.visit(this, arg);
-			}
-		}
+		// this method does not actually issue the call opcode
+		// instead issues it indirectly by visiting method ref
+		refVisitHelper(expr.methodRef, arg);
 		
 		return null;
 	}
@@ -451,9 +491,9 @@ public class Encoder implements Visitor<Integer, Integer>{
 
 	@Override
 	public Integer visitNewArrayExpr(NewArrayExpr expr, Integer arg) {
-		expr.sizeExpr.visit(this, arg);
 		// all miniJava values are size 1, so this is enough
 		// might have to multiply by object size otherwise
+		expr.sizeExpr.visit(this, arg);
 		
 		Machine.emit(Prim.newarr);
 		return null;
@@ -464,7 +504,6 @@ public class Encoder implements Visitor<Integer, Integer>{
 		// this ref appears within non-static methods, so the OB should be set to the
 		// correct location in the heap by the surrounding method call already
 		Machine.emit(Op.LOADA, Reg.OB, 0);
-		
 		return null;
 	}
 
@@ -476,11 +515,18 @@ public class Encoder implements Visitor<Integer, Integer>{
 
 	@Override
 	public Integer visitQRef(QualRef ref, Integer arg) {
-		// TODO fix, qualifying ref can't just be ignored i don't think
+		refVisitHelper(ref.ref, arg);
+		
+		getRefVal(ref.ref.getDecl().getRED());
+		
 		ref.id.visit(this, arg);
 		return null;
 	}
-
+	
+	// if the identifier being visited is a method, then this method issues a call op
+	// and the result of the call is left at the top of the stack
+	// otherwise, the address that corresponds to the identifier in question is left at
+	// stack top
 	@Override
 	public Integer visitIdentifier(Identifier id, Integer arg) {
 		Declaration dec = id.getDecl();
@@ -490,20 +536,33 @@ public class Encoder implements Visitor<Integer, Integer>{
 		int disp;
 		
 		if(red instanceof Field) {
+			disp = ((Field)red).offset;
 			if(((FieldDecl)dec).isStatic) {
 				relTo = Reg.SB;
+				
+				Machine.emit(Op.LOADA, relTo, disp);
 			}
 			else {
-				relTo = Reg.OB;
+				if(implicitthis) {
+					Machine.emit(Op.LOADA, Reg.OB, 0);
+				}
+				// if a nonstatic field is being visited, then its corresponding instance addr
+				// in the heap should already be loaded
+				Machine.emit(Op.LOADL, disp);
 			}
-			disp = ((Field)red).offset;
 			
-			Machine.emit(Op.LOADA, relTo, disp);
 		}
 		else if(red instanceof UnknownValue) {
 			relTo = Reg.LB;
 			disp = ((UnknownValue)red).offset;
 			
+			Machine.emit(Op.LOADA, relTo, disp);
+		}
+		else if(red instanceof UnknownAddress) {
+			relTo = Reg.LB;
+			disp = ((UnknownAddress)red).offset;
+			
+			// address of heap address is pushed onto the stack
 			Machine.emit(Op.LOADA, relTo, disp);
 		}
 		else if(red instanceof KnownRoutine) {
@@ -513,22 +572,21 @@ public class Encoder implements Visitor<Integer, Integer>{
 			disp = ((KnownRoutine)red).codeaddr;
 			
 			if(!((MethodDecl)dec).isStatic) { // non-static method call
-				
+				Machine.emit(Op.CALLI, relTo, disp);
 			}
 			else { // static method call
 				Machine.emit(Op.CALL, relTo, disp);
 			}
 			
 		}
-		else if(red instanceof UnknownAddress) {
-			relTo = Reg.LB;
-			disp = ((UnknownAddress)red).offset;
-			
-			Machine.emit(Op.LOAD, relTo, disp);
-		}
-		else { // if(red instanceof KnownAddress) {
-			
-		}
+		//else if(red instanceof KnownValue) {}
+			// this RED is only being used for classes atm
+			// just do nothing
+			// next access is a static address
+		//else if(red instanceof KnownAddress) {}
+		
+		// immediately set to false after the first visit to an identifier of any sort
+		implicitthis = false;
 		
 		return null;
 	}
