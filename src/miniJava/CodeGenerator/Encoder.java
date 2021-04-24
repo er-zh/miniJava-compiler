@@ -151,9 +151,6 @@ public class Encoder implements Visitor<Integer, Integer>{
 			staticSeg += fieldsize;
 			
 			fieldsize = 0;
-			
-			// exception is _PrintStream out static field of System
-			// it has size 0 and can have its representation reside within static memory
 		}
 		else {
 			fd.setRED(new Field(fieldsize, offset));
@@ -236,7 +233,7 @@ public class Encoder implements Visitor<Integer, Integer>{
 		int varsize = decl.type.visit(this, arg);
 		
 		if(decl.type.typeKind == TypeKind.CLASS || decl.type.typeKind == TypeKind.ARRAY) {
-			decl.setRED(new UnknownAddress(varsize, offset));
+			decl.setRED(new UnknownAddress(varsize, arg));
 		}
 		else {
 			decl.setRED(new UnknownValue(varsize, arg));
@@ -312,7 +309,10 @@ public class Encoder implements Visitor<Integer, Integer>{
 		RuntimeEntityDescriptor red = dec.getRED();
 		if(red instanceof Field) {
 			if(((FieldDecl)dec).isStatic) {
-				//Machine.emit(Op.LOADI);
+				Machine.emit(Op.LOADI);
+				// for System.out, the address 0 is loaded
+				// this is incorrect, but since it can only call
+				// println which doesn't use fields, should be ok
 			}
 			else {
 				Machine.emit(Prim.fieldref);
@@ -397,19 +397,18 @@ public class Encoder implements Visitor<Integer, Integer>{
 		condjump = Machine.nextInstrAddr();
 		Machine.emit(Op.JUMPIF, Machine.trueRep, Reg.CB, -1);
 		
-		elsejump = -1;
 		if(stmt.elseStmt != null) {
 			stmt.elseStmt.visit(this, arg);
-			elsejump = Machine.nextInstrAddr();
-			Machine.emit(Op.JUMP, Reg.CB, -1);
 		}
+		elsejump = Machine.nextInstrAddr();
+		Machine.emit(Op.JUMP, Reg.CB, -1);
 		
 		then = Machine.nextInstrAddr();
 		stmt.thenStmt.visit(this, arg);
 		
 		endstmt = Machine.nextInstrAddr();
 		Machine.patch(condjump, then);
-		if(elsejump != -1) Machine.patch(elsejump, endstmt);
+		Machine.patch(elsejump, endstmt);
 		
 		return null;
 	}

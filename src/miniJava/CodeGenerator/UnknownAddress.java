@@ -5,7 +5,7 @@ public class UnknownAddress extends RuntimeEntityDescriptor {
 	
 	public UnknownAddress(int size, int offset) {
 		super(size);
-		
+		this.offset = offset;
 	}
 
 }
