@@ -4,7 +4,9 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.InputStream;
 
+import mJAM.ObjectFile;
 import miniJava.AbstractSyntaxTrees.AST;
+import miniJava.CodeGenerator.Encoder;
 import miniJava.ContextualAnalyzer.IdChecker;
 import miniJava.ContextualAnalyzer.TypeChecker;
 import miniJava.SyntacticAnalyzer.Parser;
@@ -49,7 +51,7 @@ public class Compiler {
 			System.exit(compilefail_code);
 		}
 		else if(!ic.hasUniqueMain()) {
-			System.out.println("Error --> Program is missing a main method or has multiple main methods");
+			System.out.println("*** line 0: Error --> Program is missing a main method or has multiple main methods");
 			System.exit(compilefail_code);
 		}
 		
@@ -62,7 +64,21 @@ public class Compiler {
 		}
 		//*/
 		
-		System.exit(success_code);
+		Encoder ecd = new Encoder(ic.mainClass());
+		ecd.encode(parseTree);
+		
+		String mJamFileName = args[0].replace(".mJAM",".asm");
+		
+		ObjectFile objF = new ObjectFile(mJamFileName);
+		
+		if (objF.write()) {
+			System.exit(success_code);
+		}
+		else {
+			System.exit(compilefail_code);
+		}
+		
+		
 		
 	}
 
