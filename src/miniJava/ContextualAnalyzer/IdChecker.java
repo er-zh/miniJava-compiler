@@ -448,6 +448,13 @@ public class IdChecker implements Visitor<Object, Object>{
 					ref.posn, false));
 		}
 		
+		// check for the special case of array length
+		if(conDecl.type instanceof ArrayType && ref.id.spelling.equals("length")) {
+			ref.id.linkDecl(null);
+			ref.linkDecl(null);
+			return null;
+		}
+		
 		//check for this or recursive class
 		boolean withinClass;
 

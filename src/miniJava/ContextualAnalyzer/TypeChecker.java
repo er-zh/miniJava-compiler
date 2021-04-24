@@ -548,6 +548,9 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 
 	@Override
 	public TypeDenoter visitQRef(QualRef ref, Object arg) {
+		if(ref.id.spelling.equals("length")) {
+			return new BaseType(TypeKind.INT, ref.posn);
+		}
 		return ref.id.getDecl().type.visit(this, null);
 	}
 

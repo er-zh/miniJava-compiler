@@ -462,14 +462,24 @@ public class Encoder implements Visitor<Integer, Integer>{
 		return null;
 	}
 
+	// handles array.length special member
 	@Override
 	public Integer visitRefExpr(RefExpr expr, Integer arg) {
+		Reference re = expr.ref;
+		if(re instanceof QualRef) {
+			QualRef qre = (QualRef)re;
+			if(qre.id.spelling.equals("length")) {
+				refVisitHelper(qre.ref, arg);
+				getRefVal(qre.ref.getDecl());
+
+				Machine.emit(Prim.arraylen);
+				return null;
+			}
+		}
 		// ref visit should leave the correct address for the data
 		// at stack top
-		refVisitHelper(expr.ref, arg);
-		
-		getRefVal(expr.ref.getDecl());
-		
+		refVisitHelper(re, arg);
+		getRefVal(re.getDecl());
 		return null;
 	}
 
@@ -530,6 +540,7 @@ public class Encoder implements Visitor<Integer, Integer>{
 		// this ref appears within non-static methods, so the OB should be set to the
 		// correct location in the heap by the surrounding method call already
 		Machine.emit(Op.LOADA, Reg.OB, 0);
+		implicitthis = false;
 		return null;
 	}
 
@@ -540,7 +551,7 @@ public class Encoder implements Visitor<Integer, Integer>{
 	}
 
 	@Override
-	public Integer visitQRef(QualRef ref, Integer arg) {
+	public Integer visitQRef(QualRef ref, Integer arg) {		
 		refVisitHelper(ref.ref, arg);
 		
 		getRefVal(ref.ref.getDecl());
@@ -599,6 +610,10 @@ public class Encoder implements Visitor<Integer, Integer>{
 			disp = ((KnownRoutine)red).codeaddr;
 			
 			if(!((MethodDecl)dec).isStatic) { // non-static method call
+				if(implicitthis) {
+					Machine.emit(Op.LOADA, Reg.OB, 0);
+				}
+				
 				Machine.emit(Op.CALLI, relTo, disp);
 			}
 			else { // static method call
@@ -612,6 +627,11 @@ public class Encoder implements Visitor<Integer, Integer>{
 			int patchaddr = Machine.nextInstrAddr();
 			
 			if(!((MethodDecl)dec).isStatic) { // non-static method call
+				if(implicitthis) {
+					Machine.emit(Op.LOADA, Reg.OB, 0);
+					patchaddr += 1;
+				}
+				
 				Machine.emit(Op.CALLI, relTo, disp);
 			}
 			else { // static method call
@@ -630,6 +650,11 @@ public class Encoder implements Visitor<Integer, Integer>{
 			int patchaddr = Machine.nextInstrAddr();
 			
 			if(!((MethodDecl)dec).isStatic) { // non-static method call
+				if(implicitthis) {
+					Machine.emit(Op.LOADA, Reg.OB, 0);
+					patchaddr += 1;
+				}
+				
 				Machine.emit(Op.CALLI, relTo, disp);
 			}
 			else { // static method call
