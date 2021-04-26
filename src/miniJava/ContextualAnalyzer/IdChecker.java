@@ -171,7 +171,7 @@ public class IdChecker implements Visitor<Object, Object>{
 		for(ParameterDecl pd : pdl) pd.visit(this, null);
 		
 		// check for the existence of a unique main function
-		if(md.name.equals("main")) {
+		if(md.name.equals("main") && pdl.size() == 1) {
 			boolean isVoid = md.type.typeKind == TypeKind.VOID;
 			
 			boolean hasStringArgs;
