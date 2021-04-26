@@ -40,9 +40,8 @@ public class Compiler {
 			System.exit(compilefail_code);
 		}
 		
-		//new ASTDisplay().showTree(parseTree);
+//		new ASTDisplay().showTree(parseTree);
 		
-		///*
 		IdChecker ic = new IdChecker(e);
 		ic.check(parseTree);
 		
@@ -62,12 +61,12 @@ public class Compiler {
 			System.out.println(e.getErrorReport());
 			System.exit(compilefail_code);
 		}
-		//*/
+//		System.exit(success_code);
 		
 		Encoder ecd = new Encoder(ic.mainClass());
 		ecd.encode(parseTree);
 		
-		String mJamFileName = args[0].replace(".mJAM",".asm");
+		String mJamFileName = args[0].replace(".java",".mJAM");
 		
 		ObjectFile objF = new ObjectFile(mJamFileName);
 		
@@ -77,8 +76,6 @@ public class Compiler {
 		else {
 			System.exit(compilefail_code);
 		}
-		
-		
 		
 	}
 
