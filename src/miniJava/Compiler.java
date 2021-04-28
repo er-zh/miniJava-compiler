@@ -71,10 +71,10 @@ public class Compiler {
 		ObjectFile objF = new ObjectFile(mJamFileName);
 		
 		if (objF.write()) {
-			System.exit(success_code);
+			System.exit(compilefail_code);
 		}
 		else {
-			System.exit(compilefail_code);
+			System.exit(success_code);
 		}
 		
 	}
