@@ -308,12 +308,13 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		}
 		
 		for(int i = 0; i < pdl.size(); i++) {
-			if(!checkEquals(pdl.get(0).type, args.get(i).visit(this, null), stmt.posn)) {
+			if(!checkEquals(pdl.get(i).type, args.get(i).visit(this, null), stmt.posn)) {
 				err.reportError(new SemanticError("arg " + (i+1) + " of method call does not match the expected type",
 						stmt.posn, true));
 				return null;
 			}
 		}
+		
 		return null;
 	}
 
@@ -500,7 +501,7 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		}
 		
 		for(int i = 0; i < pdl.size(); i++) {
-			if(!checkEquals(pdl.get(0).type, args.get(i).visit(this, null), args.get(i).posn)) {
+			if(!checkEquals(pdl.get(i).type, args.get(i).visit(this, null), args.get(i).posn)) {
 				err.reportError(new SemanticError("arg " + (i+1) + " of method call does not match the expected type",
 						expr.posn, true));
 				return new BaseType(TypeKind.ERROR, expr.posn);

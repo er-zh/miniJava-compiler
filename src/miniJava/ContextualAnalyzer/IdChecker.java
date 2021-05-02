@@ -284,6 +284,10 @@ public class IdChecker implements Visitor<Object, Object>{
 	public Object visitAssignStmt(AssignStmt stmt, Object arg) {
 		stmt.ref.visit(this, null);
 		
+		if(stmt.ref.getDecl() == null) {
+			err.reportError(new SemanticError("reference on left hand side may not be assigned to", stmt.ref.posn, false));
+		}
+		
 		stmt.val.visit(this, null);
 		return null;
 	}
@@ -450,17 +454,12 @@ public class IdChecker implements Visitor<Object, Object>{
 		
 		// check for the special case of array length
 		if(conDecl.type instanceof ArrayType && ref.id.spelling.equals("length")) {
-			ref.id.linkDecl(null);
-			ref.linkDecl(null);
 			return null;
 		}
 		
 		//check for this or recursive class
 		boolean withinClass;
 
-		// the qualifier must be an instance of a class
-		// since it has members that are being referenced
-		
 		// note a().b or a[].b not allowed
 		
 		// for a.b, if a is a var, param, or field
@@ -486,9 +485,11 @@ public class IdChecker implements Visitor<Object, Object>{
 				return null;
 			}
 			
-			
-			
 			idDecl = findMemberDecl(ref.id, classdec);
+			
+			if(idDecl == null) {
+				return null;
+			}
 		}
 		else { 
 			// conDecl.type is null meaing the controlling decl is already a class decl
