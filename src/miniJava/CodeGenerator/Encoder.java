@@ -48,11 +48,21 @@ import mJAM.Machine.Op;
 import mJAM.Machine.Prim;
 import mJAM.Machine.Reg;
 
-public class Encoder implements Visitor<Integer, Integer>{	
-	private String startClass;
+public class Encoder implements Visitor<Integer, Integer>{
+	// location of the main method used to patch the call to main inside
+	// the preamble
 	private int main_code_addr;
+	
+	// size of the static segment used to patch the push opcode that initializes
+	// the static segment of the execution stack
 	private int staticSeg;
+	
+	// check for special main case and for the special println case
 	private ClassDecl currentcd;
+	private String startClass;
+	
+	// used to set the stack displacement values for fields
+	// and for method parameters
 	private int offset;
 	
 	// used set to true prior to any ref visit
@@ -84,7 +94,9 @@ public class Encoder implements Visitor<Integer, Integer>{
 		Machine.emit(Prim.newarr);           // empty String array argument
 		int patch_main_call_addr = Machine.nextInstrAddr();  // record instr addr where main is called                                                
 		Machine.emit(Op.CALL,Reg.CB,-1);     // static call main (address to be patched)
-		Machine.emit(Op.HALT,0,0,0);         // end execution
+		
+		// end execution
+		Machine.emit(Op.HALT,0,0,0);
 		
 		// generate code for the other methods
 		dectree.visit(this, null); 
@@ -336,9 +348,9 @@ public class Encoder implements Visitor<Integer, Integer>{
 			// eval the value expr
 			// result at stack top
 			stmt.val.visit(this, arg);
-			
+
 			refVisitHelper(stmt.ref, arg);
-	
+
 			// now address of var being assigned to is at stack top with
 			// the value right below it	
 			Machine.emit(Op.STOREI);
@@ -372,6 +384,9 @@ public class Encoder implements Visitor<Integer, Integer>{
 		refVisitHelper(stmt.methodRef, arg);
 		
 		// return value of the call, if any, should be disregarded
+		if(stmt.methodRef.getDecl().type.typeKind != TypeKind.VOID) {
+			Machine.emit(Op.POP, 1);
+		}
 		
 		return null;
 	}
