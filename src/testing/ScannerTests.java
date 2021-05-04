@@ -33,6 +33,7 @@ class ScannerTests {
 		typeIndex.put("if", TokenType.IF);
 		typeIndex.put("else", TokenType.ELSE);
 		typeIndex.put("while", TokenType.WHILE);
+		typeIndex.put("for", TokenType.FOR);
 		typeIndex.put("return", TokenType.RETURN);
 		typeIndex.put("class", TokenType.CLASS);
 		typeIndex.put("new", TokenType.NEW);
@@ -134,7 +135,7 @@ class ScannerTests {
 	void testKeywords() {
 		String input = "public private pirate static void"
 				+ "boolean int true false if else"
-				+ "while return class new this thjis"
+				+ "while for four return class new this thjis"
 				// non keyword inputs
 				+ "aaaaaaaa aa_aaaa"
 				+ "num12342342344523432134234"

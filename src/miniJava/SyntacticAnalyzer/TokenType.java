@@ -22,6 +22,7 @@ public enum TokenType {
 		IF,
 		ELSE,
 		WHILE,
+		FOR,
 		RETURN,
 		// visibility
 		PUBLIC,

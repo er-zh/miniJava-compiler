@@ -15,6 +15,7 @@ import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.ExprList;
 import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
+import miniJava.AbstractSyntaxTrees.ForStmt;
 import miniJava.AbstractSyntaxTrees.IdRef;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IfStmt;
@@ -291,6 +292,15 @@ public class ASTtoString implements Visitor<String,Object> {
         stmt.cond.visit(this, indent(arg));
         stmt.body.visit(this, indent(arg));
         return null;
+    }
+    
+    public Object visitForStmt(ForStmt stmt, String arg) {
+    	show(arg, stmt);
+    	stmt.initialization.visit(this, indent(arg));
+    	stmt.termination.visit(this, indent(arg));
+    	stmt.increment.visit(this, indent(arg));
+    	stmt.body.visit(this, indent(arg));
+    	return null;
     }
     
 

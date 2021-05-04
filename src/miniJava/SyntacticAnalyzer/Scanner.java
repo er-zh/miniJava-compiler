@@ -41,6 +41,7 @@ public class Scanner {
 		keywordDict.put("if", TokenType.IF);
 		keywordDict.put("else", TokenType.ELSE);
 		keywordDict.put("while", TokenType.WHILE);
+		keywordDict.put("for", TokenType.FOR);
 		keywordDict.put("return", TokenType.RETURN);
 		keywordDict.put("null", TokenType.NULL);
 		
