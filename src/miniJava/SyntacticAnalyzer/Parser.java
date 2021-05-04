@@ -38,7 +38,8 @@ public class Parser {
 			ClassDeclList classes = parseProgram();
 
 			return new Package(classes, currentpos);
-		} catch (SyntaxError e) {
+		}
+		catch (SyntaxError e) {
 			if (err != null) err.reportError(e);
 
 			return null;
@@ -496,100 +497,117 @@ public class Parser {
 	
 	private Statement parseForInit() {
 		// parse the var dec or assign in a for loop decl
-		accept(TokenType.ID);
-		
 		Statement statemt = null;
 		SourcePosition stmtStart = currentpos;
-		Identifier startingId = new Identifier(currentToken, currentpos);		
-
-		switch (currentToken.getType()) {
+		
+		switch(currentToken.getType()) {
 		case ID:
-			// 2 id's indicates
-			// variable declaration of id with type id
-			String varName = currentToken.getLexeme(); // name of var being declared
-
-			advance();
-			accept(TokenType.ASSIGNMENT);
-			Expression ex = parseExpr(); // expr whose value var id is initialized with
+			Identifier startingId = new Identifier(currentToken, currentpos);
 			
-			SourcePosition declpos = startingId.posn;
-			statemt = new VarDeclStmt(new VarDecl(new ClassType(startingId, declpos), 
-					varName, declpos), 
-					ex, stmtStart);
-			break;
-		case PERIOD:
-			Reference ref = new IdRef(startingId, currentpos);
-
-			while (currentToken.getType() == TokenType.PERIOD) {
-				advance();
-
-				ref = new QualRef(ref, new Identifier(currentToken, currentpos), currentpos);
-				accept(TokenType.ID);
-			}
-
-			statemt = parseStatementRefAssign(ref);
-			statemt.posn = stmtStart;
-			break;
-		case ASSIGNMENT:
-			// if the input is of the form
-			// id =
-			// then the id is a ref
-			ref = new IdRef(startingId, currentpos);
-			
-			accept(TokenType.ASSIGNMENT);
-			ex = parseExpr(); // expr value assigned to var id
-
-			statemt = new AssignStmt(ref, ex, stmtStart);
-			break;
-		case LSQUARE:
-			// still need to decide between 
-			// an array variable decl or an indexed assignment
 			advance();
 
-			if (currentToken.getType() == TokenType.RSQUARE) { // array var decl
-				advance();
+			switch (currentToken.getType()) {
+			case ID:
+				// 2 id's indicates
+				// variable declaration of id with type id
+				String varName = currentToken.getLexeme(); // name of var being declared
 
-				varName = currentToken.getLexeme(); // name of the array
-				accept(TokenType.ID);
-				
+				advance();
 				accept(TokenType.ASSIGNMENT);
-				ex = parseExpr(); // val array is initialized with
+				Expression ex = parseExpr(); // expr whose value var id is initialized with
 				
-				declpos = startingId.posn;
-				
-				statemt = new VarDeclStmt(new VarDecl(new ArrayType(new ClassType(startingId, declpos), 
-						declpos), 
+				SourcePosition declpos = startingId.posn;
+				statemt = new VarDeclStmt(new VarDecl(new ClassType(startingId, declpos), 
 						varName, declpos), 
 						ex, stmtStart);
-			}
-			else { // indexed assign
+				break;
+			case PERIOD:
+				Reference ref = new IdRef(startingId, currentpos);
+
+				while (currentToken.getType() == TokenType.PERIOD) {
+					advance();
+
+					ref = new QualRef(ref, new Identifier(currentToken, currentpos), currentpos);
+					accept(TokenType.ID);
+				}
+
+				statemt = parseStatementRefAssign(ref);
+				statemt.posn = stmtStart;
+				break;
+			case ASSIGNMENT:
+				// if the input is of the form
+				// id =
+				// then the id is a ref
 				ref = new IdRef(startingId, currentpos);
 				
-				Expression indexExpr = parseExpr();
-				
-				accept(TokenType.RSQUARE);
-				
 				accept(TokenType.ASSIGNMENT);
-				ex = parseExpr(); // value assigned to ref[indexExpr]
-				
-				statemt = new IxAssignStmt(ref, indexExpr, ex, stmtStart);
+				ex = parseExpr(); // expr value assigned to var id
+
+				statemt = new AssignStmt(ref, ex, stmtStart);
+				break;
+			case LSQUARE:
+				// still need to decide between 
+				// an array variable decl or an indexed assignment
+				advance();
+
+				if (currentToken.getType() == TokenType.RSQUARE) { // array var decl
+					advance();
+
+					varName = currentToken.getLexeme(); // name of the array
+					accept(TokenType.ID);
+					
+					accept(TokenType.ASSIGNMENT);
+					ex = parseExpr(); // val array is initialized with
+					
+					declpos = startingId.posn;
+					
+					statemt = new VarDeclStmt(new VarDecl(new ArrayType(new ClassType(startingId, declpos), 
+							declpos), 
+							varName, declpos), 
+							ex, stmtStart);
+				}
+				else { // indexed assign
+					ref = new IdRef(startingId, currentpos);
+					
+					Expression indexExpr = parseExpr();
+					
+					accept(TokenType.RSQUARE);
+					
+					accept(TokenType.ASSIGNMENT);
+					ex = parseExpr(); // value assigned to ref[indexExpr]
+					
+					statemt = new IxAssignStmt(ref, indexExpr, ex, stmtStart);
+				}
+				break;
+			default:
+				throw new SyntaxError("failed to parse initialization step in for loop", stmtStart);
 			}
 			break;
+		case BOOLEAN:
+		case INT:
+			TypeDenoter type = parseType();
+			String varName = currentToken.getLexeme();
+
+			accept(TokenType.ID);
+			accept(TokenType.ASSIGNMENT);
+			Expression val = parseExpr();
+
+			statemt = new VarDeclStmt(new VarDecl(type, varName, stmtStart), val, stmtStart);
+			break;
 		default:
-			throw new SyntaxError("failed to parse statement", stmtStart);
+			throw new SyntaxError("failed to parse initialization step in for loop", stmtStart);
 		}
-		
+
 		return statemt;
 	}
 	
 	private Statement parseForInc() {
 		// can only be some kind of assingment statement
-		accept(TokenType.ID);
-		
 		Statement statemt = null;
 		SourcePosition stmtStart = currentpos;
 		Identifier startingId = new Identifier(currentToken, currentpos);
 		Reference ref = new IdRef(startingId, currentpos);
+		accept(TokenType.ID);
 
 		switch (currentToken.getType()) {
 		case PERIOD:

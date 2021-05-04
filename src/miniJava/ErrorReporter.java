@@ -18,7 +18,6 @@ public class ErrorReporter {
 	}
 	
 	public String getErrorReport() {
-		// TODO add line number locations to error report
 		return errors.get(0).toString();
 	}
 	

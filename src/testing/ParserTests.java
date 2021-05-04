@@ -9,6 +9,7 @@ import java.io.InputStream;
 
 import org.junit.jupiter.api.Test;
 
+import miniJava.ErrorReporter;
 import miniJava.SyntacticAnalyzer.Parser;
 import miniJava.SyntacticAnalyzer.Scanner;
 
@@ -300,6 +301,83 @@ class ParserTests {
 		
 		p = new Parser(new Scanner(str2Stream(input)));
 		assertFalse(p.parse() != null);
+	}
+	
+	@Test 
+	void testForLoops() {
+		String input = "class floops {\n"
+				+ "public static void main(String[] args){\n"
+				+ "this = that;\n"
+				+ "for(int i = 0; i < 20; i = i + 1){"
+				+ "System.out.println(i);"
+				+ "}}}";
+		ErrorReporter er = new ErrorReporter();
+		Parser p = new Parser(new Scanner(str2Stream(input)), er);
+		
+		assertTrue(p.parse() != null);
+		
+		input = "class floops {\n"
+				+ "public static void main(String[] args){\n"
+				+ "for(int[] i = new int[4]; i < 20; i = i + 1){"
+				+ "System.out.println(i);"
+				+ "}}}";
+		
+		p = new Parser(new Scanner(str2Stream(input)), er);
+		assertTrue(p.parse() != null);
+		
+		input = "class floops {\n"
+				+ "public static void main(String[] args){\n"
+				+ "for(j = k; p; i = i + 1){"
+				+ "System.out.println(i);"
+				+ "}}}";
+		
+		p = new Parser(new Scanner(str2Stream(input)), er);
+		assertTrue(p.parse() != null);
+		
+		input = "class floops {\n"
+				+ "public static void main(String[] args){\n"
+				+ "for(j = k; boolval(); i = i + 1){"
+				+ "System.out.println(i);"
+				+ "}}}";
+		
+		p = new Parser(new Scanner(str2Stream(input)), er);
+		assertTrue(p.parse() != null);
+		
+		input = "class floops {\n"
+				+ "public static void main(String[] args){\n"
+				+ "for(j = new J(); boolval(i); i = random(i)){"
+				+ "System.out.println(i);"
+				+ "}}}";
+		
+		p = new Parser(new Scanner(str2Stream(input)), er);
+		assertTrue(p.parse() != null);
+		
+		input = "class floops {\n"
+				+ "public static void main(String[] args){\n"
+				+ "for(;;){"
+				+ "System.out.println(i);"
+				+ "}}}";
+		
+		p = new Parser(new Scanner(str2Stream(input)), er);
+		assertTrue(p.parse() != null);
+		
+		input = "class floops {\n"
+				+ "public static void main(String[] args){\n"
+				+ "for(;/*why*/;){"
+				+ "System.out.println(i);"
+				+ "}}}";
+		
+		p = new Parser(new Scanner(str2Stream(input)), er);
+		assertTrue(p.parse() != null);
+		
+		input = "class floops {\n"
+				+ "public static void main(String[] args){\n"
+				+ "for(;stack.pop(); i = stack.peek()){"
+				+ "System.out.println(i);"
+				+ "}}}";
+		
+		p = new Parser(new Scanner(str2Stream(input)), er);
+		assertTrue(p.parse() != null);
 	}
 	
 	@Test
