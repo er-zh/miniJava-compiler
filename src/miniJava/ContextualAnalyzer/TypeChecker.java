@@ -18,6 +18,7 @@ import miniJava.AbstractSyntaxTrees.ClassDeclList;
 import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.ExprList;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
+import miniJava.AbstractSyntaxTrees.ForStmt;
 import miniJava.AbstractSyntaxTrees.IdRef;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IfStmt;
@@ -372,9 +373,26 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 		TypeDenoter condtype = stmt.cond.visit(this, null);
 		
 		if(condtype.typeKind != TypeKind.BOOLEAN) {
-			err.reportError(new SemanticError("loop condition must evaluate to a boolean type", stmt.posn, true));
+			err.reportError(new SemanticError("while loop termination condition must evaluate to a boolean type", stmt.posn, true));
 			return new BaseType(TypeKind.ERROR, stmt.posn);
 		}
+		
+		stmt.body.visit(this, null);
+		
+		return null;
+	}
+	
+	@Override
+	public TypeDenoter visitForStmt(ForStmt stmt, Object arg) {
+		if (stmt.initialization != null) stmt.initialization.visit(this, arg);
+    	if (stmt.termination != null) {
+    		TypeDenoter condtype = stmt.termination.visit(this, arg);
+    		if(condtype.typeKind != TypeKind.BOOLEAN) {
+    			err.reportError(new SemanticError("for loop termination condition must evaluate to a boolean type", stmt.posn, true));
+    			return new BaseType(TypeKind.ERROR, stmt.posn);
+    		}
+    	}
+    	if (stmt.increment != null) stmt.increment.visit(this, arg);
 		
 		stmt.body.visit(this, null);
 		

@@ -364,6 +364,13 @@ class IdentificationTests {
 	
 	
 	@Test
+	void testForLoops() {
+		setupTest("../tests/pa5_test/pass002.java");
+		
+		pass();
+	}
+	
+	@Test
 	void testPassComplicatedProg1() {
 		setupTest("../tests/pa1_selfmade/valid_qs.java");
 		pass();

@@ -19,6 +19,7 @@ import miniJava.AbstractSyntaxTrees.ExprList;
 import miniJava.AbstractSyntaxTrees.Expression;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
 import miniJava.AbstractSyntaxTrees.FieldDeclList;
+import miniJava.AbstractSyntaxTrees.ForStmt;
 import miniJava.AbstractSyntaxTrees.IdRef;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IfStmt;
@@ -342,6 +343,18 @@ public class IdChecker implements Visitor<Object, Object>{
 	@Override
 	public Object visitWhileStmt(WhileStmt stmt, Object arg) {
 		stmt.cond.visit(this, null);
+		
+		stmt.body.visit(this, null);
+		
+		checkNotSingleVarDecl(stmt.body);
+		return null;
+	}
+	
+	@Override
+	public Object visitForStmt(ForStmt stmt, Object arg) {
+    	if (stmt.initialization != null) stmt.initialization.visit(this, arg);
+    	if (stmt.termination != null) stmt.termination.visit(this, arg);
+    	if (stmt.increment != null) stmt.increment.visit(this, arg);
 		
 		stmt.body.visit(this, null);
 		

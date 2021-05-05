@@ -219,7 +219,11 @@ class TypeCheckingTests {
 		pass();
 	}
 	
-	
+	@Test
+	void testPassForLoops() {
+		setupTest("../tests/pa5_test/pass002.java");
+		pass();
+	}
 	
 	
 	
