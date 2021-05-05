@@ -372,9 +372,9 @@ class ParserTests {
 		
 		input = "class floops {\n"
 				+ "public static void main(String[] args){\n"
-				+ "for(;stack.pop(); i = stack.peek()){"
+				+ "for(;stack.pop(); i = stack.peek()) "
 				+ "System.out.println(i);"
-				+ "}}}";
+				+ "}}";
 		
 		p = new Parser(new Scanner(str2Stream(input)), er);
 		assertTrue(p.parse() != null);

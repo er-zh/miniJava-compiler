@@ -296,9 +296,9 @@ public class ASTtoString implements Visitor<String,Object> {
     
     public Object visitForStmt(ForStmt stmt, String arg) {
     	show(arg, stmt);
-    	stmt.initialization.visit(this, indent(arg));
-    	stmt.termination.visit(this, indent(arg));
-    	stmt.increment.visit(this, indent(arg));
+    	if (stmt.initialization != null) stmt.initialization.visit(this, indent(arg));
+    	if (stmt.termination != null) stmt.termination.visit(this, indent(arg));
+    	if (stmt.increment != null) stmt.increment.visit(this, indent(arg));
     	stmt.body.visit(this, indent(arg));
     	return null;
     }

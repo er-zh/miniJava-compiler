@@ -986,7 +986,74 @@ class ASTConstructionTests {
 		assertTrue(tree != null);
 		
 		assertTrue(new ASTtoString().stringifyTree(tree).equals(expected));
+	}
+	
+	@Test
+	void testForLoop1() {
+		String file = "../tests/pa5_test/pass001.java";
+		String expected = "======= AST Display =========================\n"
+				+ "Package\n"
+				+ "  ClassDeclList [1]\n"
+				+ "  . ClassDecl\n"
+				+ "  .   \"floop\" classname\n"
+				+ "  .   FieldDeclList [0]\n"
+				+ "  .   MethodDeclList [1]\n"
+				+ "  .   . (public) MethodDecl\n"
+				+ "  .   .   VOID BaseType\n"
+				+ "  .   .   \"main\" methodname\n"
+				+ "  .   .   ParameterDeclList [0]\n"
+				+ "  .   .   StmtList [2]\n"
+				+ "  .   .   . ForStmt\n"
+				+ "  .   .   .   VarDeclStmt\n"
+				+ "  .   .   .     VarDecl\n"
+				+ "  .   .   .       INT BaseType\n"
+				+ "  .   .   .       \"i\" varname\n"
+				+ "  .   .   .     LiteralExpr\n"
+				+ "  .   .   .       \"0\" IntLiteral\n"
+				+ "  .   .   .   BinaryExpr\n"
+				+ "  .   .   .     \"<\" Operator\n"
+				+ "  .   .   .       RefExpr\n"
+				+ "  .   .   .         IdRef\n"
+				+ "  .   .   .           \"i\" Identifier\n"
+				+ "  .   .   .       LiteralExpr\n"
+				+ "  .   .   .         \"12\" IntLiteral\n"
+				+ "  .   .   .   AssignStmt\n"
+				+ "  .   .   .     IdRef\n"
+				+ "  .   .   .       \"i\" Identifier\n"
+				+ "  .   .   .     BinaryExpr\n"
+				+ "  .   .   .       \"+\" Operator\n"
+				+ "  .   .   .         RefExpr\n"
+				+ "  .   .   .           IdRef\n"
+				+ "  .   .   .             \"i\" Identifier\n"
+				+ "  .   .   .         LiteralExpr\n"
+				+ "  .   .   .           \"1\" IntLiteral\n"
+				+ "  .   .   .   CallStmt\n"
+				+ "  .   .   .     IdRef\n"
+				+ "  .   .   .       \"print\" Identifier\n"
+				+ "  .   .   .     ExprList [1]\n"
+				+ "  .   .   .     . RefExpr\n"
+				+ "  .   .   .     .   IdRef\n"
+				+ "  .   .   .     .     \"i\" Identifier\n"
+				+ "  .   .   . ForStmt\n"
+				+ "  .   .   .   BlockStmt\n"
+				+ "  .   .   .     StatementList [1]\n"
+				+ "  .   .   .     . CallStmt\n"
+				+ "  .   .   .     .   IdRef\n"
+				+ "  .   .   .     .     \"print\" Identifier\n"
+				+ "  .   .   .     .   ExprList [1]\n"
+				+ "  .   .   .     .   . RefExpr\n"
+				+ "  .   .   .     .   .   IdRef\n"
+				+ "  .   .   .     .   .     \"something_random\" Identifier\n"
+				+ "=============================================\n";
+		Parser p = new Parser(new Scanner(str2filestream(file)));
 		
+		AST tree = p.parse();
+		
+		new ASTDisplay().showTree(tree);
+		
+		assertTrue(tree != null);
+		
+		assertTrue(new ASTtoString().stringifyTree(tree).equals(expected));
 	}
 	
 	@Test
@@ -1005,7 +1072,7 @@ class ASTConstructionTests {
 		
 		AST ptree = p.parse();
 		
-		new ASTDisplay().showTree(ptree);
+		//new ASTDisplay().showTree(ptree);
 	}
 	
 	@Test
