@@ -15,6 +15,7 @@ import miniJava.AbstractSyntaxTrees.ClassType;
 import miniJava.AbstractSyntaxTrees.Declaration;
 import miniJava.AbstractSyntaxTrees.FieldDecl;
 import miniJava.AbstractSyntaxTrees.FieldDeclList;
+import miniJava.AbstractSyntaxTrees.ForStmt;
 import miniJava.AbstractSyntaxTrees.IdRef;
 import miniJava.AbstractSyntaxTrees.Identifier;
 import miniJava.AbstractSyntaxTrees.IfStmt;
@@ -289,7 +290,7 @@ public class Encoder implements Visitor<Integer, Integer>{
 		// values declared within the block statement need to fall
 		// out of scope after leaving the block
 		// pop any var decls from the stack to clean up the frame
-		Machine.emit(Op.POP, block);
+		if(block > 0) Machine.emit(Op.POP, block);
 		
 		return null;
 	}
@@ -443,6 +444,37 @@ public class Encoder implements Visitor<Integer, Integer>{
 		stmt.cond.visit(this, arg);
 		Machine.emit(Op.JUMPIF, Machine.trueRep, Reg.CB, body);
 		
+		return null;
+	}
+	
+	@Override
+	public Integer visitForStmt(ForStmt stmt, Integer arg) {
+		int start, end, terminalJump = -1;
+		if (stmt.initialization != null) stmt.initialization.visit(this, arg);
+		
+		start = Machine.nextInstrAddr();
+		if (stmt.termination != null) {
+			stmt.termination.visit(this, arg);
+			terminalJump = Machine.nextInstrAddr();
+			Machine.emit(Op.JUMPIF, Machine.falseRep, Reg.CB, -1);
+		}
+		
+		stmt.body.visit(this, arg);
+		
+    	if (stmt.increment != null) stmt.increment.visit(this, arg);
+    	
+    	Machine.emit(Op.JUMP, Reg.CB, start);
+    	end = Machine.nextInstrAddr();
+		
+    	if(terminalJump != -1) {
+    		Machine.patch(terminalJump, end);
+    	}
+    	
+    	if(stmt.initialization instanceof VarDeclStmt) {
+    		// clean up the counter variable created in the initialization step
+    		Machine.emit(Op.POP, 1);
+    	}
+    	
 		return null;
 	}
 

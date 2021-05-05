@@ -384,15 +384,15 @@ public class TypeChecker implements Visitor<Object, TypeDenoter>{
 	
 	@Override
 	public TypeDenoter visitForStmt(ForStmt stmt, Object arg) {
-		if (stmt.initialization != null) stmt.initialization.visit(this, arg);
+		if (stmt.initialization != null) stmt.initialization.visit(this, null);
     	if (stmt.termination != null) {
-    		TypeDenoter condtype = stmt.termination.visit(this, arg);
+    		TypeDenoter condtype = stmt.termination.visit(this, null);
     		if(condtype.typeKind != TypeKind.BOOLEAN) {
     			err.reportError(new SemanticError("for loop termination condition must evaluate to a boolean type", stmt.posn, true));
     			return new BaseType(TypeKind.ERROR, stmt.posn);
     		}
     	}
-    	if (stmt.increment != null) stmt.increment.visit(this, arg);
+    	if (stmt.increment != null) stmt.increment.visit(this, null);
 		
 		stmt.body.visit(this, null);
 		

@@ -352,9 +352,9 @@ public class IdChecker implements Visitor<Object, Object>{
 	
 	@Override
 	public Object visitForStmt(ForStmt stmt, Object arg) {
-    	if (stmt.initialization != null) stmt.initialization.visit(this, arg);
-    	if (stmt.termination != null) stmt.termination.visit(this, arg);
-    	if (stmt.increment != null) stmt.increment.visit(this, arg);
+    	if (stmt.initialization != null) stmt.initialization.visit(this, null);
+    	if (stmt.termination != null) stmt.termination.visit(this, null);
+    	if (stmt.increment != null) stmt.increment.visit(this, null);
 		
 		stmt.body.visit(this, null);
 		
